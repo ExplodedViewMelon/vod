@@ -90,7 +90,9 @@ class SearchMaster(Generic[Sc], abc.ABC):
         self._server_proc = self._start_server()
         self._on_init()
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:  # noqa: ANN401
+    def __exit__(
+        self, exc_type: Any, exc_val: Any, exc_tb: Any
+    ) -> None:  # noqa: ANN401
         """Kill the server."""
         self._on_exit()
         if self._server_proc is not None:
@@ -149,7 +151,9 @@ class SearchMaster(Generic[Sc], abc.ABC):
             time.sleep(0.1)
             if time.time() - t0 > self._timeout:
                 server_proc.terminate()
-                raise TimeoutError(f"Couldn't ping the server after {self._timeout:.0f}s.")
+                raise TimeoutError(
+                    f"Couldn't ping the server after {self._timeout:.0f}s."
+                )
         loguru.logger.info(f"Spawned {self.service_info} in {time.time() - t0:.1f}s.")
         return server_proc
 
