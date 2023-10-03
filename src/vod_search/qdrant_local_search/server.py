@@ -15,7 +15,6 @@ from qdrant_client.models import ExtendedPointId
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--index-path", type=str, default="dummy/path")
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int, default=6333)
     return parser.parse_args()

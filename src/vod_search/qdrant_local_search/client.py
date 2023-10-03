@@ -73,8 +73,7 @@ class QdrantLocalSearchClient(base.SearchClient):
 
 
 class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.ABC):
-    def __init__(self, index_path: str | Path, skip_setup: bool = False) -> None:
-        self.index_path = Path(index_path)  # if str cast as Path
+    def __init__(self, skip_setup: bool = False) -> None:
         self.host = "http://localhost"
         self.port = 6333
         super().__init__(skip_setup)
@@ -87,13 +86,10 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
         # building of index is done in master, not in server
         # get the path to the server script
         server_run_path = Path(__file__).parent / "server.py"
-        print("server_run_path:", server_run_path)
         executable_path = sys.executable
         return [
             str(executable_path),
             str(server_run_path),
-            "--index-path",
-            str(self.index_path.absolute()),
             "--host",
             str(self.host),
             "--port",
