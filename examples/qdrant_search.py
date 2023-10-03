@@ -24,7 +24,9 @@ class Args(arguantic.Arguantic):
 
 def run(args: Args) -> None:
     """Run the script."""
-    index_name = f"test_collection_{args.dataset_size}_{args.vector_size}_{args.n_categories}"
+    index_name = (
+        f"test_collection_{args.dataset_size}_{args.vector_size}_{args.n_categories}"
+    )
 
     # Dataset
     vectors = np.random.randn(args.dataset_size, args.vector_size).astype("float32")
@@ -58,7 +60,9 @@ def run(args: Args) -> None:
         logger.info(f"Client: {client.size()} records")
 
         query_vecs = np.random.randn(args.bs, args.vector_size).astype("float32")
-        query_groups = np.random.randint(0, args.n_categories, size=args.bs).astype("int64")
+        query_groups = np.random.randint(0, args.n_categories, size=args.bs).astype(
+            "int64"
+        )
 
         results = client.search(
             vector=query_vecs,
@@ -78,7 +82,9 @@ def run(args: Args) -> None:
         start = time.perf_counter()
         for _ in track(range(args.n_trials), description="Benchmarking Qdrant"):
             query_vecs = np.random.randn(args.bs, args.vector_size).astype("float32")
-            query_groups = np.random.randint(0, args.n_categories, size=args.bs).astype("int64")
+            query_groups = np.random.randint(0, args.n_categories, size=args.bs).astype(
+                "int64"
+            )
             results = client.search(
                 vector=query_vecs,
                 group=query_groups,  # type: ignore
