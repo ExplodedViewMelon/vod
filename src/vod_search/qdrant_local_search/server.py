@@ -16,17 +16,16 @@ from qdrant_client.models import ExtendedPointId
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("--port", type=int, default=6333)
+    parser.add_argument("--port", type=int)
     return parser.parse_args()
 
 
 class QdrantDatabase:
-
     """init simple qdrant database with a single collection"""
 
     def __init__(self, vector_size: int, name: str) -> None:
         self.db = QdrantClient(":memory:")  # or QdrantClient(path="path/to/db")
-        self.name = name
+        self.collection_name = name
         self.db.recreate_collection(
             collection_name=name,
             vectors_config=models.VectorParams(
@@ -37,7 +36,7 @@ class QdrantDatabase:
     def ingest_data(self, vectors: np.ndarray) -> None:
         ids: list[ExtendedPointId] = list(range(len(vectors)))
         self.db.upsert(
-            collection_name=self.name,
+            collection_name=self.collection_name,
             points=models.Batch(
                 ids=ids,
                 vectors=vectors.tolist(),
@@ -47,17 +46,16 @@ class QdrantDatabase:
 
     def _search_single(self, query_vector: list[float], limit: int = 3):
         return self.db.search(
-            collection_name=self.name, query_vector=query_vector, limit=limit
+            collection_name=self.collection_name, query_vector=query_vector, limit=limit
         )
 
     def search(self, query_vectors: list[list[float]], top_k: int) -> Response:
-        # get batches request
+        """Search database for top_k similar vectors for batch"""
         search_queries = [
             models.SearchRequest(vector=vector, limit=top_k) for vector in query_vectors
         ]
-        # execute
         results = self.db.search_batch(
-            collection_name=self.name, requests=search_queries
+            collection_name=self.collection_name, requests=search_queries
         )
 
         # shape result into Response format
@@ -69,16 +67,12 @@ class QdrantDatabase:
         return Response(scores=scores, indices=indices)
 
 
-logger.info("Server waking up...")
-print("Server waking up -_-")
 args = parse_args()
 vec_size = 128
 DB = QdrantDatabase(vec_size, "test_database")
-
-logger.info("Creating dummy database")
 DB.ingest_data(np.random.random((1000, vec_size)))  # add 1000 random vectors
 # DB.load_index(args.index_path)
-# DB.save_index()
+# DB.save_index() # does not work for local qdrant
 app = FastAPI()
 
 
@@ -94,19 +88,18 @@ async def search(query: Query) -> Response:
     return DB.search(query.vectors, top_k=query.top_k)
 
 
-def run_faiss_server(host: str, port: int) -> None:
+def run_qdrant_local_server(host: str, port: int) -> None:
     """Start the API and server."""
     pattern = re.compile(r"^(http|https)://")
     host = re.sub(pattern, "", host)
     uvicorn.run(app, host=host, port=port, workers=1)
 
 
-def test():
-    # a small test
+def _test():
+    # a small local test for checking database search
     print(asyncio.run(search(Query(vectors=np.random.random((10, vec_size)).tolist()))))
 
 
 if __name__ == "__main__":
     # test()
-    print("So far so good MIAVMIAV ")
-    run_faiss_server(args.host, args.port)
+    run_qdrant_local_server(args.host, args.port)

@@ -5,8 +5,8 @@ import numpy as np
 
 """ TODO
 Figure how to build database first or at least specify how many datapoints to test on.
+Maybe make an API call to build a dummy database
 """
-
 
 vec_size: int = 128
 query_vectors = np.random.random(size=(10, vec_size))
