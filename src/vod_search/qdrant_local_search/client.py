@@ -69,14 +69,17 @@ class QdrantLocalSearchClient(base.SearchClient):
 
 class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.ABC):
     # maybe delete vectors file when closing object?
+    # move creation of .npy out of the master object. Input path instead.
+    # or maybe not. Faiss gets a file, qdrant gets the vectors...
     def __init__(
         self,
         vectors: np.ndarray,
+        port=6333,
         skip_setup: bool = False,
     ) -> None:
         self.vectors = vectors
         self.host = "http://localhost"
-        self.port = 6333
+        self.port = port
         super().__init__(skip_setup)
 
     def get_client(self) -> QdrantLocalSearchClient:

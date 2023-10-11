@@ -31,6 +31,10 @@ from .qdrant_local_search import (
     QdrantLocalSearchClient,
     QdrantLocalSearchMaster,
 )
+from .milvus_search import (
+    MilvusSearchClient,
+    MilvusSearchMaster,
+)
 from .rdtypes import (
     RetrievalBatch,
     RetrievalData,

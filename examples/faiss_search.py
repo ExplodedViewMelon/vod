@@ -35,7 +35,7 @@ def run(args: Args) -> None:
         faiss.write_index(index, index_path)
 
         # Spin up a server
-        with faiss_search.FaissMaster(index_path) as master:
+        with faiss_search.FaissMaster(index_path, port=8888) as master:
             client = master.get_client()
             rich.print(client)
 

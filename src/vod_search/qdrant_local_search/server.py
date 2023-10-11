@@ -76,7 +76,6 @@ class QdrantDatabase:
 
 # Build index
 args = parse_args()
-
 vectors: np.ndarray = np.load(args.vectors_filepath, allow_pickle=True)
 database_size, vector_size = vectors.shape
 print("Init. database with size", vectors.shape)
@@ -89,7 +88,7 @@ app = FastAPI()
 @app.get("/")
 def health_check() -> str:
     """Check if the server is running."""
-    return "hello"
+    return "OK"
 
 
 @app.post("/search")

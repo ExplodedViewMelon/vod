@@ -33,6 +33,6 @@ vector_size: int = 128
 database_vectors = np.random.random(size=(10_000, vector_size))
 query_vectors = np.random.random(size=(10, vector_size))
 
-with qdrant_local_search.QdrantLocalSearchMaster(vectors=database_vectors) as master:
+with qdrant_local_search.QdrantLocalSearchMaster(vectors=database_vectors, port=8888) as master:
     client = master.get_client()
     print(client.search(vector=query_vectors, top_k=5))
