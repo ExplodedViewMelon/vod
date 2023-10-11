@@ -13,11 +13,6 @@ import numpy as np
 import torch
 from src.vod_search.qdrant_local_search.models import Query, Response
 
-# TODO
-# implement functions for searching locally with qdrant
-# create server inteface
-# create master / client thing
-
 
 class QdrantLocalSearchClient(base.SearchClient):
     requires_vectors = True
@@ -73,7 +68,13 @@ class QdrantLocalSearchClient(base.SearchClient):
 
 
 class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.ABC):
-    def __init__(self, skip_setup: bool = False) -> None:
+    # maybe delete vectors file when closing object?
+    def __init__(
+        self,
+        vectors: np.ndarray,
+        skip_setup: bool = False,
+    ) -> None:
+        self.vectors = vectors
         self.host = "http://localhost"
         self.port = 6333
         super().__init__(skip_setup)
@@ -81,10 +82,15 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
     def get_client(self) -> QdrantLocalSearchClient:
         return QdrantLocalSearchClient(self.host, self.port)
 
+    def save_vectors_as_file(self) -> str:
+        # since local qdrant cannot save or read indexes, vectors are passed to server using this file.
+        np.save("qdrant_local_vectors.npy", self.vectors)
+        return "qdrant_local_vectors.npy"
+
     def _make_cmd(self) -> list[str]:
-        # add arguments to server.py
-        # building of index is done in master, not in server
         # get the path to the server script
+        # add arguments to server.py
+        vectors_filepath = self.save_vectors_as_file()
         server_run_path = Path(__file__).parent / "server.py"
         executable_path = sys.executable
         return [
@@ -94,6 +100,8 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
             str(self.host),
             "--port",
             str(self.port),
+            "--vectors-filepath",
+            vectors_filepath,
         ]
 
     def _make_env(self) -> dict[str, str]:

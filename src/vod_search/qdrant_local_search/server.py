@@ -17,19 +17,34 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int)
+    parser.add_argument("--vectors-filepath", type=str)
     return parser.parse_args()
 
 
 class QdrantDatabase:
     """init simple qdrant database with a single collection"""
 
-    def __init__(self, vector_size: int, name: str) -> None:
+    def __init__(
+        self,
+        vector_size: int,
+        name: str,
+        m: int = 16,
+        ef_construct: int = 100,
+        full_scan_threshold: int = 10_000,
+        on_disk: bool = False,
+    ) -> None:
         self.db = QdrantClient(":memory:")  # or QdrantClient(path="path/to/db")
         self.collection_name = name
         self.db.recreate_collection(
             collection_name=name,
             vectors_config=models.VectorParams(
                 size=vector_size, distance=models.Distance.COSINE
+            ),
+            hnsw_config=models.HnswConfigDiff(
+                m=m,
+                ef_construct=ef_construct,
+                full_scan_threshold=full_scan_threshold,
+                on_disk=on_disk,
             ),
         )
 
@@ -67,12 +82,15 @@ class QdrantDatabase:
         return Response(scores=scores, indices=indices)
 
 
+# Build index
 args = parse_args()
-vec_size = 128
-DB = QdrantDatabase(vec_size, "test_database")
-DB.ingest_data(np.random.random((1000, vec_size)))  # add 1000 random vectors
-# DB.load_index(args.index_path)
-# DB.save_index() # does not work for local qdrant
+
+vectors: np.ndarray = np.load(args.vectors_filepath, allow_pickle=True)
+database_size, vector_size = vectors.shape
+print("Init. database with size", vectors.shape)
+DB = QdrantDatabase(vector_size, "test_database")
+DB.ingest_data(vectors)
+
 app = FastAPI()
 
 
@@ -97,7 +115,11 @@ def run_qdrant_local_server(host: str, port: int) -> None:
 
 def _test():
     # a small local test for checking database search
-    print(asyncio.run(search(Query(vectors=np.random.random((10, vec_size)).tolist()))))
+    print(
+        asyncio.run(
+            search(Query(vectors=np.random.random((10, args.vector_size)).tolist()))
+        )
+    )
 
 
 if __name__ == "__main__":

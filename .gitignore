@@ -142,3 +142,7 @@ dmypy.json
 
 .idea
 .vscode
+
+# Qdrant local database stuff, numpy storage
+
+*.npy
