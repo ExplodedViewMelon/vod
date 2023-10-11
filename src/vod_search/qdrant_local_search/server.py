@@ -37,9 +37,7 @@ class QdrantDatabase:
         self.collection_name = name
         self.db.recreate_collection(
             collection_name=name,
-            vectors_config=models.VectorParams(
-                size=vector_size, distance=models.Distance.COSINE
-            ),
+            vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
             hnsw_config=models.HnswConfigDiff(
                 m=m,
                 ef_construct=ef_construct,
@@ -60,18 +58,12 @@ class QdrantDatabase:
         )
 
     def _search_single(self, query_vector: list[float], limit: int = 3):
-        return self.db.search(
-            collection_name=self.collection_name, query_vector=query_vector, limit=limit
-        )
+        return self.db.search(collection_name=self.collection_name, query_vector=query_vector, limit=limit)
 
     def search(self, query_vectors: list[list[float]], top_k: int) -> Response:
         """Search database for top_k similar vectors for batch"""
-        search_queries = [
-            models.SearchRequest(vector=vector, limit=top_k) for vector in query_vectors
-        ]
-        results = self.db.search_batch(
-            collection_name=self.collection_name, requests=search_queries
-        )
+        search_queries = [models.SearchRequest(vector=vector, limit=top_k) for vector in query_vectors]
+        results = self.db.search_batch(collection_name=self.collection_name, requests=search_queries)
 
         # shape result into Response format
         scores: list[list[float]] = []
@@ -115,11 +107,7 @@ def run_qdrant_local_server(host: str, port: int) -> None:
 
 def _test():
     # a small local test for checking database search
-    print(
-        asyncio.run(
-            search(Query(vectors=np.random.random((10, args.vector_size)).tolist()))
-        )
-    )
+    print(asyncio.run(search(Query(vectors=np.random.random((10, args.vector_size)).tolist()))))
 
 
 if __name__ == "__main__":
