@@ -39,12 +39,8 @@ def run(args: Args) -> None:
             client = master.get_client()
             rich.print(client)
 
-            query_vecs = np.random.randn(args.batch_size, args.vector_size).astype(
-                "float32"
-            )
-            query_groups = np.random.randint(
-                0, args.n_categories, size=args.batch_size
-            ).astype("int64")
+            query_vecs = np.random.randn(args.batch_size, args.vector_size).astype("float32")
+            query_groups = np.random.randint(0, args.n_categories, size=args.batch_size).astype("int64")
 
             results = client.search(
                 vector=query_vecs,
@@ -61,9 +57,7 @@ def run(args: Args) -> None:
             logger.info("Benchmarking...")
             start = time.perf_counter()
             for _ in track(range(args.n_trials), description="Benchmarking Faiss"):
-                query_vecs = np.random.randn(args.batch_size, args.vector_size).astype(
-                    "float32"
-                )
+                query_vecs = np.random.randn(args.batch_size, args.vector_size).astype("float32")
                 results = client.search(
                     vector=query_vecs,
                     top_k=args.top_k,
