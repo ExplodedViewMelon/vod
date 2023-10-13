@@ -50,7 +50,7 @@ hydra-colorlog = "^1.2.0"
 rich = "^13.3.1"
 optimum = "^1.7.1"
 faiss-cpu = { version = "1.7.4" } # changed this
-qdrant-client = "==1.5.4" # changed this
+qdrant-client = "==1.5.4" # needed for local-qdrant - it seems to break normal qdrant
 fastapi = ">=0.80"
 uvicorn = ">=0.20.0"
 psutil = "^5.9.4"

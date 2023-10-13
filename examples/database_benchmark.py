@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from vod_search import qdrant_local_search
+from vod_search import qdrant_local_search, milvus_search
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 from time import perf_counter
+
+from rich.progress import track
+
+import pandas as pd
 
 
 def get_ground_truth(vectors: np.ndarray, query: np.ndarray, top_k: int) -> np.ndarray:
@@ -36,29 +40,35 @@ class Timer:
         self.durations.append(self.t1 - self.t0)
 
     @property
-    def duration(self) -> float:
+    def mean(self) -> float:
         return np.mean(self.durations)
 
     def __str__(self) -> str:
-        return f"{self.duration}s"
+        return f"{self.mean}s"
 
+
+n_trials = 100
+n_warmup = 10
+database_size: int = 15_000
+vector_size: int = 128
+n_query_vectors = 10
 
 top_k = 100
-database_size: int = 15_000
-batch_size: int = 100
-vector_size: int = 128
-database_vectors = np.random.random(size=(database_size, vector_size))
-query_vectors = np.random.random(size=(3, vector_size))
+# batch_size: int = 100
 
-_Masters = [qdrant_local_search.QdrantLocalSearchMaster]
+database_vectors = np.random.random(size=(database_size, vector_size))
+query_vectors = np.random.random(size=(n_trials + n_warmup, n_query_vectors, vector_size))
+
+_Masters = [qdrant_local_search.QdrantLocalSearchMaster, milvus_search.MilvusSearchMaster]
 
 # timers
 benchmarkTimer = Timer()
 masterTimer = Timer()
 searchTimer = Timer()
 
-benchmarkTimer.begin()
+benchmark_results = []
 
+benchmarkTimer.begin()
 for _Master in _Masters:
     masterTimer.begin()
     with _Master(vectors=database_vectors) as master:
@@ -66,19 +76,36 @@ for _Master in _Masters:
 
         client = master.get_client()
 
-        searchTimer.begin()
-        results = client.search(vector=query_vectors, top_k=top_k)
-        searchTimer.end()
+        recalls = []
 
-        pred_indices = results.indices
-        true_indices = get_ground_truth(database_vectors, query_vectors, top_k=top_k)
-        # print(pred_indices)
-        # print(true_indices)
+        for trial in track(range(n_warmup), description=f"Warming up {master.__repr__()}"):
+            results = client.search(vector=query_vectors[trial], top_k=top_k)
 
-        print("Index build duration", masterTimer)
-        print("Search duration", searchTimer)
-        print("Recall:", recall_batch(pred_indices, true_indices))
+        for trial in track(range(n_trials), description=f"Benchmarking {master.__repr__()}"):
+            searchTimer.begin()
+            results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
+            searchTimer.end()
+
+            pred_indices = results.indices
+            true_indices = get_ground_truth(database_vectors, query_vectors[trial + n_warmup], top_k=top_k)
+
+            recalls.append(recall_batch(pred_indices, true_indices))
+
+        benchmark_results.append(
+            {
+                "Index": master.__repr__(),
+                "Build speed": masterTimer.mean,
+                "Search speed avg.": searchTimer.mean,
+                "Recall avg": np.mean(recalls),
+            }
+        )
+        print("Index build duration", masterTimer.mean)
+        print("Search duration", searchTimer.mean)
+        print("Recall avg:", np.mean(recalls))
 
 benchmarkTimer.end()
 
 print("Total time elapsed during bechmarking:", benchmarkTimer)
+
+
+print(pd.DataFrame(benchmark_results))
