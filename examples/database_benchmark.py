@@ -1,18 +1,16 @@
 from __future__ import annotations
-
-from vod_search import qdrant_local_search, milvus_search
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-
 from time import perf_counter
-
 from rich.progress import track
-
 import pandas as pd
+
+from vod_search import qdrant_local_search, milvus_search
+from vod_datasets import DatasetGlove, DatasetLastFM, DatasetSift1M
 
 
 def get_ground_truth(vectors: np.ndarray, query: np.ndarray, top_k: int) -> np.ndarray:
-    """use sklearn to return flat / brute top_k NN indices"""
+    """use sklearn to return flat, brute top_k NN indices"""
     nbrs = NearestNeighbors(n_neighbors=top_k, algorithm="brute").fit(vectors)
     distances, indices = nbrs.kneighbors(query)
     return indices
@@ -47,19 +45,21 @@ class Timer:
         return f"{self.mean}s"
 
 
+top_k = 100
 n_trials = 100
 n_warmup = 10
-database_size: int = 15_000
-vector_size: int = 128
-n_query_vectors = 10
+n_query_vectors = n_warmup + n_trials
+query_batch_size = 10
 
-top_k = 100
-# batch_size: int = 100
 
-database_vectors = np.random.random(size=(database_size, vector_size))
-query_vectors = np.random.random(size=(n_trials + n_warmup, n_query_vectors, vector_size))
+dataset = DatasetLastFM()
+index_vectors, query_vectors = dataset.get_indices_and_queries_split(n_query_vectors, query_batch_size)
 
-_Masters = [qdrant_local_search.QdrantLocalSearchMaster, milvus_search.MilvusSearchMaster]
+_SearchMasters = [
+    # faiss_search.FaissMaster,
+    qdrant_local_search.QdrantLocalSearchMaster,
+    # milvus_search.MilvusSearchMaster,
+]
 
 # timers
 benchmarkTimer = Timer()
@@ -69,9 +69,9 @@ searchTimer = Timer()
 benchmark_results = []
 
 benchmarkTimer.begin()
-for _Master in _Masters:
+for _SearchMaster in _SearchMasters:
     masterTimer.begin()
-    with _Master(vectors=database_vectors) as master:
+    with _SearchMaster(vectors=index_vectors) as master:
         masterTimer.end()
 
         client = master.get_client()
@@ -87,7 +87,7 @@ for _Master in _Masters:
             searchTimer.end()
 
             pred_indices = results.indices
-            true_indices = get_ground_truth(database_vectors, query_vectors[trial + n_warmup], top_k=top_k)
+            true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
 
             recalls.append(recall_batch(pred_indices, true_indices))
 

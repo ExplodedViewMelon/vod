@@ -1,0 +1,25 @@
+TODO:
+
+Misc:
+- weaveate benchmarks speed and accuracy seperatly. consider this
+
+
+Databases:
+- look into the following
+    - SIFT1M
+    - Glove-25 and 100
+    - Deep image 96
+    - GIST 960
+- get proof of random vectors being slower for HNSW
+
+Models:
+- look into which models to benchmark
+- implement filtering as well
+- think about distance measure. sometimes they use angular, sometimes L2
+- implement wrapper for faiss such that it can be passed vectors. It's wierd to build before hand.
+
+Metrics:
+- implment p-99 and p-x latency. maybe get the whole distribution
+- recall@1, recall@10, recall@k
+- maybe use GCP as benchmarking platform
+- use python timeit to avoid garbage collection etc.?
