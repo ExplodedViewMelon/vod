@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Any
 import pydantic
-from vod_search import base, rdtypes
+from vod_search import base
+import vod_types as vt
 import abc
 import sys
 from pathlib import Path
@@ -10,8 +11,9 @@ import requests
 from copy import copy
 import os
 import numpy as np
+from numpy import ndarray
 import torch
-from src.vod_search.qdrant_local_search.models import Query, Response
+from vod_search.qdrant_local_search.models import Query, Response
 
 
 class QdrantLocalSearchClient(base.SearchClient):
@@ -40,16 +42,16 @@ class QdrantLocalSearchClient(base.SearchClient):
     def search(
         self,
         *,
-        vector: rdtypes.Ts,
+        vector: ndarray,
+        top_k: int,
         timeout: int = 120,
         # group: list[str | int] | None = None,
         # section_ids: list[list[str | int]] | None = None,
-        top_k: int = 3,
-    ) -> rdtypes.RetrievalBatch[rdtypes.Ts]:
+    ) -> vt.RetrievalBatch:
         query = Query(vectors=vector.tolist(), top_k=top_k)
         response = requests.post(
             f"{self.url}/search",
-            json=query.dict(),
+            json=query.model_dump(),
             timeout=timeout,
         )
         response.raise_for_status()
@@ -64,7 +66,7 @@ class QdrantLocalSearchClient(base.SearchClient):
         }[input_type]
         indices = cast_fn(indices_list)
         scores = cast_fn(scores_list)
-        return rdtypes.RetrievalBatch(indices=indices, scores=scores)
+        return vt.RetrievalBatch(indices=indices, scores=scores)
 
 
 class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.ABC):
@@ -74,13 +76,18 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
     def __init__(
         self,
         vectors: np.ndarray,
+        index_specification: dict,
         port=6333,
         skip_setup: bool = False,
     ) -> None:
         self.vectors = vectors
         self.host = "http://localhost"
         self.port = port
+        self.index_specification = index_specification
         super().__init__(skip_setup)
+
+    def __repr__(self):
+        return "QdrantLocalSearchMaster"
 
     def get_client(self) -> QdrantLocalSearchClient:
         return QdrantLocalSearchClient(self.host, self.port)
@@ -105,6 +112,12 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
             str(self.port),
             "--vectors-filepath",
             vectors_filepath,
+            "--index-specification",
+            self.index_specification["index"],
+            "--distance_metric",
+            self.index_specification["distance"],
+            "--name",
+            "QdrantLocalDatabase",
         ]
 
     def _make_env(self) -> dict[str, str]:
@@ -118,3 +131,6 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
         else:
             os.environ["PYTHONPATH"] = f"{os.environ['PYTHONPATH']}:{Path.cwd()}"
         return env
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        return super().__exit__(exc_type, exc_val, exc_tb)

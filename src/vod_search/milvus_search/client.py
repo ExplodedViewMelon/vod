@@ -4,7 +4,8 @@ from typing import Any, Optional
 import json
 import numba
 import pydantic
-from vod_search import base, rdtypes
+from vod_search import base
+import vod_types as vt
 import abc
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ import requests
 from copy import copy
 import os
 import numpy as np
+from numpy import ndarray
 from pymilvus import (
     SearchResult,
     connections,
@@ -23,7 +25,6 @@ from pymilvus import (
 )
 from loguru import logger
 from typing import Any, Iterable, Optional
-from vod_tools import dstruct
 
 
 # from src.vod_search.milvus_search.models import Query, Response
@@ -90,11 +91,11 @@ class MilvusSearchClient(base.SearchClient):
         self,
         *,
         text: Optional[list[str]] = None,  # noqa: ARG002
-        vector: Optional[rdtypes.Ts],
+        vector: Optional[ndarray],
         group: Optional[list[str | int]] = None,
         section_ids: Optional[list[list[str | int]]] = None,  # noqa: ARG002
         top_k: int = 3,
-    ) -> rdtypes.RetrievalBatch[rdtypes.Ts]:
+    ) -> vt.RetrievalBatch:
         if self.collection == None:
             print("No collection passed - getting from server")
             self._get_collection()
@@ -108,7 +109,7 @@ class MilvusSearchClient(base.SearchClient):
 
 
 @numba.jit(forceobj=True, looplift=True)
-def _search_batch_to_rdtypes(batch: SearchResult, top_k: int) -> rdtypes.RetrievalBatch:
+def _search_batch_to_rdtypes(batch: SearchResult, top_k: int) -> vt.RetrievalBatch:
     """Convert a batch of search results to rdtypes."""
     scores = np.full((len(batch), top_k), -np.inf, dtype=np.float32)
     indices = np.full((len(batch), top_k), -1, dtype=np.int64)
@@ -120,7 +121,7 @@ def _search_batch_to_rdtypes(batch: SearchResult, top_k: int) -> rdtypes.Retriev
             if j > max_j:
                 max_j = j
 
-    return rdtypes.RetrievalBatch(
+    return vt.RetrievalBatch(
         scores=scores[:, : max_j + 1],
         indices=indices[:, : max_j + 1],
     )
@@ -133,7 +134,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
 
     def __init__(
         self,
-        vectors: dstruct.SizedDataset[np.ndarray],
+        vectors: ndarray,
         *,
         groups: Optional[Iterable[str | int]] = None,
         host: str = "localhost",

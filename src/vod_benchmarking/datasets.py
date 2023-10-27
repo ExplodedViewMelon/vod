@@ -49,11 +49,15 @@ class DatasetHDF5Simple(abc.ABC):
         _test = np.array(hdf5_file["test"])
         return np.concatenate((_train, _test), axis=0)
 
-    def get_indices_and_queries_split(self, n_query_vectors: int, query_batch_size: int) -> tuple[ndarray, ndarray]:
+    def get_indices_and_queries_split(
+        self, n_query_vectors: int, query_batch_size: int, size_limit: int = 0
+    ) -> tuple[ndarray, ndarray]:
         n, d = self.vectors.shape
         _test_indices = np.random.choice(n, n_query_vectors * query_batch_size, replace=False)
         query_vectors = self.vectors[_test_indices].reshape((n_query_vectors, query_batch_size, d))
         index_vectors = np.delete(self.vectors, _test_indices, axis=0)
+        if size_limit:
+            index_vectors = index_vectors[:size_limit]
         return index_vectors, query_vectors
 
     @property
@@ -86,7 +90,7 @@ class DatasetSift1M(DatasetHDF5Simple):
         return "sift-128-euclidean"
 
 
-if __name__ == "__main__":
-    # test
-    dataset = DatasetSift1M()
-    print(dataset.vectors.shape)
+# if __name__ == "__main__":
+#     # test
+#     dataset = DatasetSift1M()
+#     print(dataset.vectors.shape)

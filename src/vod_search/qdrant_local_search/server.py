@@ -18,6 +18,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int)
     parser.add_argument("--vectors-filepath", type=str)
+    parser.add_argument("--index-specification", type=str)
+    parser.add_argument("--distance_metric", type=str)
+    parser.add_argument("--name", type=str, default="QDRANT_DATABASE")
     return parser.parse_args()
 
 
@@ -26,25 +29,36 @@ class QdrantDatabase:
 
     def __init__(
         self,
+        *,
         vector_size: int,
         name: str,
-        m: int = 16,
-        ef_construct: int = 100,
-        full_scan_threshold: int = 10_000,
+        full_scan_threshold: int = 10_000,  # TODO specify somewhere
         on_disk: bool = False,
+        index_specification,
+        distance_metric,
     ) -> None:
         self.db = QdrantClient(":memory:")  # or QdrantClient(path="path/to/db")
         self.collection_name = name
+        m: int = self.index_specification_parser(index_specification)
         self.db.recreate_collection(
             collection_name=name,
-            vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
+            vectors_config=models.VectorParams(size=vector_size, distance=distance_metric),
             hnsw_config=models.HnswConfigDiff(
                 m=m,
-                ef_construct=ef_construct,
+                ef_construct=100,  # TODO specify somewhere. can also be specified during search
                 full_scan_threshold=full_scan_threshold,
                 on_disk=on_disk,
             ),
         )
+
+    def index_specification_parser(self, index_specification):
+        # e.g. "HNSW32"
+        assert index_specification[:4] == "HNSW"
+        if index_specification[4:] == "":
+            m = 16
+        else:
+            m = int(index_specification[4:])
+        return m
 
     def ingest_data(self, vectors: np.ndarray) -> None:
         ids: list[ExtendedPointId] = list(range(len(vectors)))
@@ -77,11 +91,23 @@ class QdrantDatabase:
 # Build index
 args = parse_args()
 vectors: np.ndarray = np.load(args.vectors_filepath, allow_pickle=True)
-database_size, vector_size = vectors.shape
-print("Init. database with size", vectors.shape)
-DB = QdrantDatabase(vector_size, "test_database")
-DB.ingest_data(vectors)
 
+if args.distance_metric in {"COSINE", "COS"}:
+    distance_metric = models.Distance.COSINE
+elif args.distance_metric == "DOT":
+    distance_metric = models.Distance.DOT
+elif args.distance_metric in {"EUCLID", "L2"}:
+    distance_metric = models.Distance.EUCLID
+else:
+    distance_metric = models.Distance.COSINE
+
+DB = QdrantDatabase(
+    vector_size=vectors.shape[1],
+    name=args.name,
+    index_specification=args.index_specification,
+    distance_metric=distance_metric,
+)
+DB.ingest_data(vectors)
 app = FastAPI()
 
 

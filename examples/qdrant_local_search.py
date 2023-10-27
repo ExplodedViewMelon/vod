@@ -9,15 +9,13 @@ size of data, type of data? both query and database
 PQ of vectors
 indexing type
 distance metric
-memmap or ram?
 aux data, filtering etc.
 
 Metrics for evaluation:
-Speed
-Memory <- how in the world am I going to do that? Rely on linux measurements?
+Speed, both mean and 99 percentile
+Memory <- how in the world am I going to do that? Rely on docker measurements?
 Recall and recall@k (number of queries that has the ground truth nearest neighbour in it's k returned results.)
 
-Maybe I should start implementing some of the other database providers.
 Streamline parameters.
 
 There is an infeasable number of combinations for testing. I ought to either:
@@ -33,6 +31,8 @@ vector_size: int = 128
 database_vectors = np.random.random(size=(10_000, vector_size))
 query_vectors = np.random.random(size=(10, vector_size))
 
-with qdrant_local_search.QdrantLocalSearchMaster(vectors=database_vectors, port=8888) as master:
+with qdrant_local_search.QdrantLocalSearchMaster(
+    vectors=database_vectors, port=8888, index_specification={"index": "HNSW16", "distance": "COSINE"}
+) as master:
     client = master.get_client()
     print(client.search(vector=query_vectors, top_k=5))

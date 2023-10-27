@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Optional
 
 import pydantic
-from vod_search import rdtypes
 
 
 class Response(pydantic.BaseModel):
