@@ -59,9 +59,9 @@ class TokenizerConfig(StrictModel):
     # keyword arguments for `tokenizer(..., **kwargs)`
     add_special_tokens: bool = True
     padding: typ.Literal["longest", "max_length", "do_not_pad"] = "longest"
-    truncation: None | bool | typ.Literal[
-        "longest_first", "only_first", "only_second", "do_not_truncate"
-    ] = "longest_first"
+    truncation: (
+        None | bool | typ.Literal["longest_first", "only_first", "only_second", "do_not_truncate"]
+    ) = "longest_first"
     return_token_type_ids: bool = False
 
     def instantiate(
@@ -119,6 +119,9 @@ class RealmCollateConfig(_BaseCollateConfig):
     in_batch_neg_offset: int = 0
     prep_num_proc: int = 4
     lookup_engine: str = "sparse"  # Name of the search engine to use to lookup gold sections
+    # Realm - extra data
+    query_extras: list[str] = []
+    section_extras: list[str] = []
 
     @pydantic.field_validator("tokenizer_lm", mode="before")
     @classmethod

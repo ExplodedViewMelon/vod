@@ -5,20 +5,48 @@ import datasets
 import numpy as np
 from tensorstore import _tensorstore as ts
 from vod_tools.ts_factory.ts_factory import TensorStoreFactory
-from vod_types.sequence import Sequence, SliceType
+from vod_types.sequence import Sequence
+
+
+def _slice_sequence_of_arrays(arr: Sequence[np.ndarray], indices: slice) -> np.ndarray:
+    indices_list = range(*indices.indices(len(arr)))
+    return np.stack([arr[i] for i in indices_list])
 
 
 class LazyArray(abc.ABC, Sequence[np.ndarray]):
     """A class that handles input array and provides lazy slicing into np.ndarray."""
 
+    @typ.overload
+    def __getitem__(self, __it: int) -> np.ndarray:
+        ...
+
+    @typ.overload
+    def __getitem__(self, __it: slice) -> np.ndarray:
+        ...
+
+    def __getitem__(self, item: int | slice) -> np.ndarray:
+        """Slice the vector and return the result."""
+        if isinstance(item, int):
+            return self._getitem_int(item)
+        if isinstance(item, slice):
+            return self._getitem_slice(item)
+        raise TypeError(f"Unsupported index type: {type(item)}")
+
     @abc.abstractmethod
-    def __getitem__(self, item: SliceType) -> np.ndarray:
+    def _getitem_int(self, item: int) -> np.ndarray:
         """Slice the vector and return the result."""
         raise NotImplementedError
+
+    def _getitem_slice(self, item: slice) -> np.ndarray:
+        return self._slice_arr(item)
 
     @abc.abstractmethod
     def _get_shape(self) -> tuple[int, ...]:
         raise NotImplementedError
+
+    def _slice_arr(self, indices: slice) -> np.ndarray:
+        """Slice the vector and return the result."""
+        return _slice_sequence_of_arrays(self, indices)
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -29,36 +57,31 @@ class LazyArray(abc.ABC, Sequence[np.ndarray]):
         """Return the length of the vector."""
         return self.shape[0]
 
-    def iter_batches(self, batch_size: int) -> typ.Iterable[tuple[np.ndarray, np.ndarray]]:
-        """Iterate over vector elements."""
-        for i in range(0, len(self), batch_size):
-            j = min(i + batch_size, len(self))
-            vec = self[i:j]
-            if not isinstance(vec, np.ndarray):
-                raise TypeError(f"Cannot handle type {type(vec)}")
-
-            ids = np.arange(i, j)
-            yield ids, vec
-
     def __repr__(self) -> str:
         """String representation of the vector handler."""
         return f"{type(self).__name__}(shape={self.shape})"
 
 
-class ImplicitLazyArray(LazyArray):
-    """Handles `SizedDataset`."""
+class NumpyLazyArray(LazyArray):
+    """Handles sequences of `np.ndarray`."""
 
     def __init__(self, data: Sequence[np.ndarray]):
         if not isinstance(data[0], np.ndarray):
             raise TypeError(f"Cannot handle type {type(data[0])}")
         self.data = data
 
-    def __getitem__(self, item: SliceType) -> np.ndarray:
+    def _getitem_int(self, item: int) -> np.ndarray:
         """Slice the array and return the result."""
         return self.data[item]
 
     def _get_shape(self) -> tuple[int, ...]:
         return (len(self.data), *self[0].shape)
+
+    def _slice_arr(self, indices: slice) -> np.ndarray:
+        """Slice the vector and return the result."""
+        if isinstance(self.data, np.ndarray):
+            return self.data[indices]
+        return _slice_sequence_of_arrays(self, indices)
 
 
 class TensorStoreLazyArray(LazyArray):
@@ -67,14 +90,19 @@ class TensorStoreLazyArray(LazyArray):
     def __init__(self, store: ts.TensorStore):
         self.store = store
 
-    def __getitem__(self, item: SliceType) -> np.ndarray:
+    def _getitem_int(self, item: int) -> np.ndarray:
         """Slice the stored vector and return the result."""
-        if isinstance(item, slice) and item.stop is not None and item.stop > len(self):
-            item = slice(item.start, self.store.shape[0], item.step)
         return self.store[item].read().result()
 
     def _get_shape(self) -> tuple[int, ...]:
         return self.store.shape
+
+    def _slice_arr(self, indices: slice) -> np.ndarray:
+        """Slice the vector and return the result."""
+        start, stop, step = indices.indices(len(self))
+        stop = min(stop, len(self))
+        truncated_indices = slice(start, stop, step)
+        return self.store[truncated_indices].read().result()
 
 
 class TensorStoreFactoryLazyArray(TensorStoreLazyArray):
@@ -108,7 +136,7 @@ Array: typ.TypeAlias = Sequence[np.ndarray] | TensorStoreFactory | ts.TensorStor
 def as_lazy_array(x: Array) -> LazyArray:
     """Return a vector handler for the given vector type."""
     if isinstance(x, Sequence):
-        return ImplicitLazyArray(x)
+        return NumpyLazyArray(x)
 
     if isinstance(x, TensorStoreFactory):
         return TensorStoreFactoryLazyArray(x)
@@ -119,8 +147,8 @@ def as_lazy_array(x: Array) -> LazyArray:
     raise TypeError(f"Unsupported input type: {type(x)}")
 
 
-@datasets.fingerprint.hashregister(ImplicitLazyArray)
-def _hash_implicit_lazy_array(hasher: datasets.fingerprint.Hasher, obj: ImplicitLazyArray) -> str:
+@datasets.fingerprint.hashregister(NumpyLazyArray)
+def _hash_implicit_lazy_array(hasher: datasets.fingerprint.Hasher, obj: NumpyLazyArray) -> str:
     return hasher.hash(obj.data)
 
 
@@ -132,3 +160,13 @@ def _hash_store_lazy_array(hasher: datasets.fingerprint.Hasher, obj: TensorStore
 @datasets.fingerprint.hashregister(TensorStoreFactoryLazyArray)
 def _hash_store_factory_lazy_array(hasher: datasets.fingerprint.Hasher, obj: TensorStoreFactoryLazyArray) -> str:
     return hasher.hash(obj.factory)
+
+
+def slice_arrays_sequence(arr: Sequence[np.ndarray], indices: slice) -> np.ndarray:
+    """Slice an array and return the result."""
+    if isinstance(arr, np.ndarray):
+        return arr[indices]
+    if isinstance(arr, LazyArray):
+        return arr._slice_arr(indices)
+
+    return _slice_sequence_of_arrays(arr, indices)

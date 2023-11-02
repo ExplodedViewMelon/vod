@@ -1,3 +1,4 @@
+import ast
 import copy
 import os
 import pathlib
@@ -24,7 +25,7 @@ from .sharded_search import ShardedSearchMaster
 D = typ.TypeVar("D", bound=vt.Sequence)
 
 
-def build_search_index(
+def build_search_index(  # noqa: PLR0913
     index_type: str,
     *,
     sections: None | vt.DictsSequence,
@@ -270,7 +271,7 @@ def _init_dense_search_engine(
     raise TypeError(f"Unknown dense factory config type `{type(config)}`")
 
 
-def build_hybrid_search_engine(  # noqa: C901, PLR0912
+def build_hybrid_search_engine(  # noqa: C901, PLR0912, PLR0913
     *,
     sections: None | dict[ShardName, vt.DictsSequence],
     vectors: None | dict[ShardName, vt.Sequence[np.ndarray]],
@@ -287,7 +288,7 @@ def build_hybrid_search_engine(  # noqa: C901, PLR0912
 ) -> HyrbidSearchMaster:
     """Build a hybrid search engine."""
     if free_resources is None:
-        free_resources = eval(os.environ.get("FREE_SEARCH_RESOURCES", "True"))
+        free_resources = ast.literal_eval(os.environ.get("FREE_SEARCH_RESOURCES", "True"))
         free_resources = bool(free_resources)
     if skip_setup:
         free_resources = False
@@ -356,9 +357,10 @@ def build_hybrid_search_engine(  # noqa: C901, PLR0912
         raise ValueError("No search servers were enabled.")
 
     # Concatenate the sections
-    concatenated_sections = _concatenate_dsets(
-        [sections[shard] for shard in shard_names],  # type: ignore
-    )
+    if sections is not None:
+        concatenated_sections = _concatenate_dsets([sections[shard] for shard in shard_names])
+    else:
+        concatenated_sections = None
 
     return HyrbidSearchMaster(
         servers=servers,  # type: ignore
@@ -392,7 +394,7 @@ def _resolve_ports(
     return config.model_copy(update={"engines": engines})
 
 
-def _infer_offsets(x: dict[ShardName, typ.Sized], shard_names: list[ShardName]) -> dict[ShardName, int]:
+def _infer_offsets(x: dict[ShardName, vt.Sequence], shard_names: list[ShardName]) -> dict[ShardName, int]:
     """Infer the offsets of a list of SizedDatasets."""
     if len(x) == 0:
         return {}
@@ -401,8 +403,8 @@ def _infer_offsets(x: dict[ShardName, typ.Sized], shard_names: list[ShardName]) 
 
 
 def _infer_and_validate_offsets(
-    sections: None | dict[ShardName, typ.Sized],
-    vectors: None | dict[ShardName, typ.Sized],
+    sections: None | dict[ShardName, vt.Sequence],
+    vectors: None | dict[ShardName, vt.Sequence],
     shard_names: list[ShardName],
 ) -> dict[ShardName, int]:
     if sections is not None and vectors is not None:
@@ -440,6 +442,8 @@ def _concatenate_dsets(parts: list[D]) -> D:
     if len(parts) > 1:
         if all(isinstance(p, datasets.Dataset) for p in parts):
             return datasets.concatenate_datasets(parts)  # type: ignore
-        return vt.ConcatenatedSequences(parts)  # type: ignore
+        raise NotImplementedError(
+            f"Can't support other types than `datasets.Dataset` for now. Found {[type(d) for d in parts]}"
+        )
 
     return parts[0]

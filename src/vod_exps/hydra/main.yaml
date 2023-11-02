@@ -3,7 +3,7 @@ defaults:
   - model: ranker
   - tokenizers: default
   # Dataset and dataloaders
-  - datasets: fiqa
+  - datasets: beir # A small dataset for testing purposes
   - dataloaders: default
   - collates: default
   - templates: default
@@ -15,7 +15,7 @@ defaults:
   - resources: default
   - batch_size: default
   - sys: default
-  - env: default
+  - set_env: default
   - hydra: default
 
 # Shorthands
@@ -23,10 +23,10 @@ seed: ${global_seed:}
 model_name: ${parse_model_name:${model}}
 encoder_name: ${parse_encoder_name:${model}}
 lm_name: ${parse_lm_name:${model}}
-run_name: ${exp_version}-${fmt_mn:${model_name}}--${rdn_name:}${exp_suffix}
+run_name: ${exp_version}-${model_name}--${rdn_name:}${exp_suffix}
 
 # Exposed variables -- set this to control your app
-exp_version: v1.0
+exp_version: v1
 code_version: ${code_version:}
 exp_suffix: ""
 exp_name: vod

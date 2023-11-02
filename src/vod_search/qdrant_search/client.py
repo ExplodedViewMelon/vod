@@ -183,7 +183,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
 
     _allow_existing_server: bool = True
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         vectors: vt.Sequence[np.ndarray],
         *,
@@ -443,13 +443,14 @@ def _ingest_data(
         range(0, len(vectors), batch_size),
         description=f"{_collection_name(collection_name)}: Ingesting {pretty.human_format_nb(len(vectors))} vectors",
     ):
-        vec_chunk = vectors[j : j + batch_size]
+        vec_chunk = vt.slice_arrays_sequence(vectors, slice(j, j + batch_size))
         if groups is None:
             payloads = None
         else:
             group_chunk = [next(groups_iter) for _ in range(len(vec_chunk))]
             payloads = [
-                {QDRANT_SUBSET_ID_KEY: g if isinstance(g, str) else int(g)} for g in group_chunk  # type: ignore
+                {QDRANT_SUBSET_ID_KEY: g if isinstance(g, str) else int(g)}
+                for g in group_chunk  # type: ignore
             ]
         ids = np.arange(j, j + len(vec_chunk))
         batch = qdrm.Batch(

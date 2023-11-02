@@ -1,10 +1,12 @@
 import asyncio
+import copy
 import time
 import typing as typ
 import warnings
 
 import numpy as np
 import rich
+import tenacity
 import vod_search as vs
 import vod_types as vt
 from vod_dataloaders.core import merge, normalize
@@ -15,7 +17,7 @@ FLOAT_INF_THRES = 3e12  # <-- values above this threshold are considered as +inf
 LOOKUP_CLIENT_NAME = "lookup"
 
 
-def async_hybrid_search(
+def async_hybrid_search(  # noqa: PLR0913
     *,
     text: list[str],
     shards: list[str],
@@ -32,7 +34,7 @@ def async_hybrid_search(
     NOTE: The `lookup_engine_name` is used to lookup the golden/positive sections.
     """
     meta = {}
-    if lookup_engine_name not in clients.keys():
+    if lookup_engine_name not in clients:
         raise ValueError(f"The `{lookup_engine_name}` client must be specified to lookup the golden/positive sections.")
 
     # Create the search payloads
@@ -126,7 +128,14 @@ def _merge_search_results(
 async def _execute_search(payloads: list[dict[str, typ.Any]]) -> list[vt.RetrievalBatch]:
     """Execute the search asynchronously."""
 
+    @tenacity.retry(stop=tenacity.stop_after_attempt(10), wait=tenacity.wait_random_exponential(min=1, max=60))
     async def _async_search_one(args: dict[str, typ.Any]) -> vt.RetrievalBatch:
+        """Execute a single search with retries.
+
+        NOTE: make sure to copy args before passing them to this function,
+              so we don't modify the original dict and ensure safe retries.
+        """
+        args = copy.copy(args)  # shallow copy to avoid modifying the original dict
         client = args.pop("client")
         start_time = time.perf_counter()
         result = await client.async_search(**args)

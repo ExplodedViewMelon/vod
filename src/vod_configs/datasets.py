@@ -9,7 +9,9 @@ from vod_tools.misc.config import as_pyobj_validator
 from .search import (
     HybridSearchFactoryConfig,
 )
-from .support import SectioningConfig
+from .support import (
+    SectioningConfig,
+)
 from .utils.base import StrictModel
 
 
@@ -57,8 +59,7 @@ class DatasetOptions(StrictModel):
         if other is None:
             return self
         attrs = other.model_dump(exclude_none=True)
-        new_self = self.model_copy(update=attrs)
-        return new_self
+        return type(self)(**{**self.model_dump(), **attrs})
 
 
 class BaseDatasetConfig(StrictModel):
@@ -74,7 +75,7 @@ class BaseDatasetConfig(StrictModel):
         frozen = True
         from_attributes = True
 
-    identifier: pydantic.constr(to_lower=True) = pydantic.Field(  # type: ignore | auto-lowercase
+    identifier: str = pydantic.Field(  # type: ignore | auto-lowercase
         ...,
         description="Name of the dataset",
     )

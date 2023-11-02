@@ -6,9 +6,6 @@ from .batch import (
     RealmBatch,
     RealmOutput,
 )
-from .concatenated import (
-    ConcatenatedSequences,
-)
 from .functional import (
     Collate,
     Pipe,
@@ -17,6 +14,7 @@ from .lazy_array import (
     Array,
     LazyArray,
     as_lazy_array,
+    slice_arrays_sequence,
 )
 from .mapping import (
     MappingMixin,
@@ -34,5 +32,4 @@ from .retrieval import (
 from .sequence import (
     DictsSequence,
     Sequence,
-    SliceType,
 )

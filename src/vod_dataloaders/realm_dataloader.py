@@ -23,7 +23,7 @@ class RealmDataloader(torch_data.DataLoader[dict[str, typ.Any]]):
     """A subclass of `torch.utils.data.DataLoader` to implement VOD's magic."""
 
     @classmethod
-    def factory(  # noqa: ANN206, D417
+    def factory(  # noqa: PLR0913, ANN206, D417
         cls: Type[Self],
         *,
         queries: dict[K, tuple[ShardName, vt.DictsSequence]],
@@ -136,7 +136,7 @@ class _WithExtrasAndVectors(vt.DictsSequence[T]):
         self.vector_key = vector_key
         self.extras = extras or {}
 
-    def __getitem__(self, index: vt.SliceType) -> dict[str, T]:
+    def __getitem__(self, index: int) -> dict[str, T]:
         row = self.dataset[index]
         row.update(self.extras)
         if self.vectors is not None:
@@ -161,6 +161,8 @@ def _concatenate_dsets(parts: list[D]) -> D:
     if len(parts) > 1:
         if all(isinstance(p, datasets.Dataset) for p in parts):
             return datasets.concatenate_datasets(parts)  # type: ignore
-        return vt.ConcatenatedSequences(parts)  # type: ignore
+        raise NotImplementedError(
+            f"Concatenation is only supported for type `datasets.Dataset`. Found types {[type(p) for p in parts]}"
+        )
 
     return parts[0]

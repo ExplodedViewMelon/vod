@@ -6,7 +6,6 @@ import pathlib
 import typing as typ
 from numbers import Number
 
-import loguru
 import numpy as np
 import pydantic
 import rich
@@ -17,6 +16,7 @@ import rich.tree
 import torch
 import transformers
 import yaml
+from loguru import logger
 from typing_extensions import Self, Type
 from vod_tools.misc.config import flatten_dict
 
@@ -159,10 +159,10 @@ def _(x: list | set | tuple) -> Properties:
         py_type=type(x),
         dtype=f"py.{leaves_types_}",
         shape=shape,
-        min=leaves_min,
-        max=leaves_max,
+        min=str(leaves_min),
+        max=str(leaves_max),
         device="-",
-        mean=leaves_mean,
+        mean=str(leaves_mean),
         n_nans=n_nans,
     )
 
@@ -245,28 +245,31 @@ def _format_field(field_name: str, field_value: typ.Any) -> str:  # noqa: ANN401
 
 def pprint_batch(
     batch: dict[str, typ.Any],
-    idx: None | list[int] = None,  # noqa: ARG - used here to enable compatibility with `datasets.map()`
+    idx: None | list[int] = None,  # used here to enable compatibility with `datasets.map()`  # noqa: ARG001
     console: None | rich.console.Console = None,
     header: None | str = None,
     footer: None | str = None,
+    sort_keys: bool = False,
     **kwargs: typ.Any,
 ) -> dict:
     """Pretty print a batch of data."""
     table = rich.table.Table(title=header, show_header=True, header_style="bold magenta")
-    fields = list(Properties.__fields__.keys())
+    fields = list(Properties.model_fields.keys())
     table.add_column("key", justify="left", style="bold cyan")
     for key in fields:
         table.add_column(key, justify="center")
 
     # Convert dict to flat dict
     flat_batch = flatten_dict(batch)
-    for key, value in flat_batch.items():
+    flat_batch_keys = sorted(flat_batch.keys()) if sort_keys else list(flat_batch.keys())
+    for key in flat_batch_keys:
+        value = flat_batch[key]
         try:
             props = infer_properties(value)
             attrs = {f: getattr(props, f) for f in fields}
             table.add_row(key, *[_format_field(k, v) for k, v in attrs.items()])
         except Exception as e:
-            loguru.logger.warning(f"Error while inferring properties for `{key}={value}` : {e}")
+            logger.warning(f"Error while inferring properties for `{key}={value}` : {e}")
             table.add_row(key, *["[red]ERROR[/red]"])
 
     if console is None:
@@ -293,9 +296,9 @@ def _safe_yaml(section: str) -> str:
     return section
 
 
-def pprint_retrieval_batch(  # noqa: C901, PLR0915, PLR0912
+def pprint_retrieval_batch(  # noqa: C901, PLR0915, PLR0912, PLR0913
     batch: dict[str, typ.Any],
-    idx: None | list[int] = None,  # noqa: ARG
+    idx: None | list[int] = None,  # noqa: ARG001
     *,
     tokenizer: transformers.PreTrainedTokenizerBase,
     header: str = "Supervised retrieval batch",
@@ -310,7 +313,7 @@ def pprint_retrieval_batch(  # noqa: C901, PLR0915, PLR0912
     if console is None:
         console = rich.console.Console()
 
-    def _format(x: typ.Any | np.ndarray | torch.Tensor) -> numbers.Number | list[numbers.Number]:
+    def _format(x: typ.Any | np.ndarray | torch.Tensor) -> numbers.Number | list[numbers.Number]:  # noqa: ANN401
         if isinstance(x, torch.Tensor) and x.numel() == 1:
             x = x.item()
         elif isinstance(x, torch.Tensor) and x.numel() > 1:
@@ -318,12 +321,12 @@ def pprint_retrieval_batch(  # noqa: C901, PLR0915, PLR0912
         elif isinstance(x, np.ndarray) and x.size == 1:
             x = x.item()
 
-        return x
+        return x  # type: ignore
 
     tree = rich.tree.Tree(header, guide_style="dim")
     query_keys = ["id", "retrieval_ids", "subset_ids", "language"]
     query_keys = [f"query__{key}" for key in query_keys]
-    section_keys = ["id", "subset_id", "score", "log_weight", "label", "language"]
+    section_keys = ["id", "subset_id", "score", "log_weight", "relevance", "language"]
     section_keys = [f"section__{key}" for key in section_keys]
     need_expansion = [
         "section__input_ids",
@@ -336,7 +339,7 @@ def pprint_retrieval_batch(  # noqa: C901, PLR0915, PLR0912
     ]
 
     # Fetch the querys
-    batch = copy.deepcopy(batch)  # noqa: F821
+    batch = {k: copy.deepcopy(v) for k, v in batch.items()}
     query_input_ids = batch["query__input_ids"]
     batch_size = len(query_input_ids)
 
@@ -375,8 +378,8 @@ def pprint_retrieval_batch(  # noqa: C901, PLR0915, PLR0912
         query_tree = rich.tree.Tree(query_node, guide_style="dim")
 
         # sort the querys by positive label (first), then higher score (second)
-        _indices_i = range(len(batch["section__label"][i]))
-        _labels_i = [float(x > 0) for x in batch["section__label"][i]]
+        _indices_i = range(len(batch["section__relevance"][i]))
+        _labels_i = [float(x) for x in batch["section__relevance"][i]]
         sort_scores = _cleanup_scores(batch["section__score"][i])
         section_sort_ids = [
             i for i, _, _ in sorted(zip(_indices_i, _labels_i, sort_scores), key=lambda x: (x[1], x[2]), reverse=True)
@@ -390,7 +393,7 @@ def pprint_retrieval_batch(  # noqa: C901, PLR0915, PLR0912
             }
             section_data_str = yaml.dump(section_data, sort_keys=False)
             section_node = rich.syntax.Syntax(section_data_str, "yaml", indent_guides=False, word_wrap=True)
-            node_style = "bold cyan" if section_data.get("section__label", False) else "white"
+            node_style = "bold cyan" if section_data.get("section__relevance", False) else "white"
 
             query_tree.add(section_node, style=node_style)
             if max_sections is not None and count >= max_sections:

@@ -3,6 +3,7 @@ import time
 import typing as typ
 import warnings
 
+import datasets
 import numpy as np
 import torch
 import transformers
@@ -10,12 +11,12 @@ import vod_configs
 import vod_search
 import vod_types as vt
 from loguru import logger
+from vod_dataloaders.core import numpy_ops
 from vod_tools.misc.exceptions import dump_exceptions_to_file
 from vod_tools.misc.template import Template
 
 from .core import (
     in_batch_negatives,
-    numpy_ops,
     sample,
     search,
     utils,
@@ -31,6 +32,11 @@ SECTION_IDS = "retrieval_ids"
 SECTION_ID = "id"
 SUBSET_ID = "subset_id"
 SUBSET_IDS = "subset_ids"
+RETRIEVAL_IDS = "retrieval_ids"
+RELEVANCE_SCORES = "retrieval_scores"
+ANSWER = "answer"
+ANSWERS = "answers"
+ANSWER_SCORES = "answer_scores"
 
 
 @dataclasses.dataclass
@@ -74,7 +80,7 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
         self.config = config
         self.parameters = _validate_parameters(parameters or {}, search_client)
         self.tokenizer_encoder = config.tokenizer_encoder.instantiate()
-        self.tokenizer_encoder = config.tokenizer_encoder.instantiate()
+        self.tokenizer_lm = config.tokenizer_lm.instantiate() if config.tokenizer_lm is not None else None
         self.templates = RealmTemplates(
             query=Template(config.templates.query),
             section=Template(config.templates.section),
@@ -96,10 +102,12 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
     def __call__(self, inputs: list[dict[str, typ.Any]], **kws: typ.Any) -> vt.RealmBatch:
         """Collate function for retrieval tasks. This function is used to convert a list of examples into a batch."""
         start_time = time.perf_counter()
-        batch = utils.pack_examples(inputs)  # list[dict] -> dict[list]
+        input_batch = utils.pack_examples(inputs)  # list[dict] -> dict[list]
+        sample_answer_(input_batch)  # Sample an answer from the list of answers
+        relevances_map: list[dict[str, float]] = _extract_relevances(input_batch)  # Extract relevance scores
 
         # Search within each client
-        search_results, raw_scores = self.search(batch, top_k=self.config.prefetch_n_sections)
+        search_results, raw_scores = self.search(input_batch, top_k=self.config.prefetch_n_sections)
         diagnostics = {f"{key}": s for key, s in search_results.meta.items()}
 
         # Sample the sections given the positive ones and the pool of candidates
@@ -124,17 +132,17 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
 
         # Replace negative indices with random ones
         #    this is required because `datasets.Dataset` doesn't support negative indices
-        sections = numpy_ops.replace_negative_indices(samples.samples, world_size=len(self.sections))
+        numpy_ops.replace_negative_indices_(samples.batch.indices, world_size=len(self.sections))
 
         # Fetch the content of each section from the huggingface `datasets.Dataset`
-        sections_shape = sections.indices.shape
-        flat_ids = sections.indices.flatten().tolist()
-        flat_sections_content: dict[str, list[typ.Any]] = self.sections[flat_ids]
+        sections_shape = samples.batch.indices.shape
+        flat_ids = samples.batch.indices.flatten().tolist()
+        flat_sections_content: dict[str, list[typ.Any]] = _fecth_section_content(self.sections, flat_ids)
 
         # Tokenize the sections and add them to the output
         with utils.BlockTimer(name="tokenize_time", output=diagnostics):
             tokenized_queries = _tokenize(
-                batch,
+                input_batch,
                 tokenizer=self.tokenizer_encoder,
                 template=self.templates.query,
                 prefix="query__",
@@ -145,39 +153,57 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
                 tokenizer=self.tokenizer_encoder,
                 template=self.templates.section,
                 prefix="section__",
-                output_shape=sections.indices.shape,
+                output_shape=samples.batch.indices.shape,
                 **self.config.tokenizer_encoder.kwargs(),
             )
+            if self.tokenizer_lm is not None:
+                assert self.config.tokenizer_lm is not None  # noqa: S101
+                tokenized_lm_texts = _tokenize_lm(
+                    input_batch,
+                    flat_sections_content,
+                    tokenizer=self.tokenizer_lm,
+                    template=self.templates.lm,
+                    prefix="lm__",
+                    output_shape=samples.batch.indices.shape,  # type: ignore
+                    **self.config.tokenizer_lm.kwargs(),
+                )
+            else:
+                tokenized_lm_texts = None
 
-        # Get query/section attributes (e.g., subset_id, retrieval_ids, etc.)
-        attributes = _get_extra_attributes(
-            batch,
+        # Get query/section attributes (e.g., subset_id, retrieval_ids, language, etc.)
+        extra_attributes = _get_extra_attributes(
+            input_batch,
             flat_sections_content,
             sections_shape=sections_shape,  # type: ignore
+            extras_keys=set(self.config.query_extras) | set(self.config.section_extras),
         )
 
-        # Make the final batch and potentially cast attributes to `torch.Tensor``
-        batch = vt.RealmBatch(
+        # Retrieve relevances based on the section ids
+        relevances = [
+            [rmap.get(sid, 0) for sid in sec_ids]
+            for rmap, sec_ids in zip(relevances_map, extra_attributes["section__id"])  # type: ignore
+        ]
+
+        # Make the final batch and potentially cast attributes to `torch.Tensor`
+        input_batch = vt.RealmBatch(
+            **(tokenized_lm_texts or {}),
             **tokenized_queries,
             **tokenized_sections,
-            **_sections_to_dict(
-                sections,
-                sampling_log_weights=samples.log_weights,
-                sampling_lse_pos=samples.lse_pos,
-                sampling_lse_neg=samples.lse_neg,
-                raw_scores=samples.raw_scores,
+            **_samples_to_dict(
+                samples,
+                relevances=relevances,
                 prefix="section__",
                 as_torch=True,
             ),
-            **attributes,
+            **extra_attributes,
             diagnostics=diagnostics,
         )
         # Append the total time for the collate function
-        batch.diagnostics["collate_time"] = time.perf_counter() - start_time
+        input_batch.diagnostics["collate_time"] = time.perf_counter() - start_time
         # Append the mean maximum index of the sampled sections
         #  This is used to monitor the sampling efficiency
-        batch.diagnostics["max_sampling_id"] = np.mean(samples.max_sampling_id)
-        return batch
+        input_batch.diagnostics["max_sampling_id"] = np.mean(samples.max_sampling_id)
+        return input_batch
 
     def search(
         self,
@@ -218,36 +244,26 @@ class RealmCollate(vt.Collate[typ.Any, torch.Tensor | list[int | float | str]]):
         )
 
 
-def _sections_to_dict(
-    sections: vod_search.RetrievalBatch,
-    sampling_log_weights: None | np.ndarray = None,
-    sampling_lse_pos: None | np.ndarray = None,
-    sampling_lse_neg: None | np.ndarray = None,
-    raw_scores: None | dict[str, np.ndarray] = None,
+def _samples_to_dict(
+    samples: sample.PrioritySampledSections,
+    relevances: list[list[float]],
     prefix: str = "",
     as_torch: bool = False,
 ) -> dict[str, np.ndarray | torch.Tensor]:
     """Convert the sampled sections to a dictionary."""
-    if sections.labels is None:
+    if samples.batch.labels is None:
         raise ValueError("The sections must have labels.")
+
     output = {
-        f"{prefix}idx": sections.indices,
-        f"{prefix}score": sections.scores,
-        f"{prefix}score": sections.scores,
-        f"{prefix}label": sections.labels > 0,
+        f"{prefix}idx": samples.batch.indices,
+        f"{prefix}score": samples.batch.scores,
+        f"{prefix}label": samples.batch.labels > 0,
+        f"{prefix}relevance": relevances,
+        f"{prefix}log_weight": samples.log_weights,
+        f"{prefix}lse_pos": samples.lse_pos,
+        f"{prefix}lse_neg": samples.lse_neg,
+        **{f"{prefix}{k}": v for k, v in samples.raw_scores.items()},
     }
-
-    if raw_scores is not None:
-        output.update({f"{prefix}{k}": v for k, v in raw_scores.items()})
-
-    if sampling_log_weights is not None:
-        output[f"{prefix}log_weight"] = sampling_log_weights
-
-    if sampling_lse_pos is not None:
-        output[f"{prefix}lse_pos"] = sampling_lse_pos
-
-    if sampling_lse_neg is not None:
-        output[f"{prefix}lse_neg"] = sampling_lse_neg
 
     if as_torch:
         with warnings.catch_warnings():
@@ -255,6 +271,7 @@ def _sections_to_dict(
             fns = {
                 f"{prefix}score": lambda x: torch.from_numpy(x).to(torch.float32),
                 f"{prefix}label": lambda x: torch.from_numpy(x).to(torch.bool),
+                f"{prefix}relevance": lambda x: torch.tensor(x, dtype=torch.float32),
             }
             output = {k: fns.get(k, torch.from_numpy)(v) for k, v in output.items()}
 
@@ -263,16 +280,13 @@ def _sections_to_dict(
 
 def _tokenize(
     batch: dict[str, typ.Any],
-    # flat_sections_content: dict[str, typ.Any],
     *,
-    # sections: vod_search.RetrievalBatch,
     tokenizer: transformers.PreTrainedTokenizerBase,
     template: Template,
     prefix: str,
     output_shape: None | tuple[int, ...] = None,
     **tokenize_kws: typ.Any,
 ) -> dict[str, torch.Tensor]:
-    # Tokenize the queries
     tokenized = render_template_and_tokenize(
         batch,
         template=template,
@@ -285,39 +299,75 @@ def _tokenize(
     return tokenized
 
 
+def _tokenize_lm(
+    batch: dict[str, list[typ.Any]],
+    sections: dict[str, list[typ.Any]],
+    *,
+    tokenizer: transformers.PreTrainedTokenizerBase,
+    template: Template,
+    prefix: str,
+    output_shape: tuple[int, int],
+    **tokenize_kws: typ.Any,
+) -> dict[str, torch.Tensor]:
+    """Tokenize the inputs to the language model.
+
+    TODO(collate): add support for `token_type_ids` (encode context/instructions/answers separately)
+    """
+    input_vars = set(template.input_vars)
+    inputs = {k: sections[k] for k in input_vars.intersection(sections.keys())}
+    for key in input_vars.intersection(batch.keys()):
+        inputs[key] = [item for item in batch[key] for _ in range(output_shape[1])]
+
+    return _tokenize(
+        inputs,
+        tokenizer=tokenizer,
+        template=template,
+        prefix=prefix,
+        output_shape=output_shape,
+        **tokenize_kws,
+    )
+
+
+def sample_answer_(batch: dict[str, list[typ.Any]]) -> None:
+    """Sample an answer from the list of answers, and create attribute `ANSWER`."""
+    answers: list[list[str]] = batch[ANSWERS]
+    answer_scores: list[list[float]] = batch[ANSWER_SCORES]
+    batch[ANSWER] = []
+    for ans_options, ans_scores in zip(answers, answer_scores):
+        if len(ans_scores) > 0:
+            ans_choice_idx = np.argmax(ans_scores)
+            batch[ANSWER].append(ans_options[ans_choice_idx])
+        else:
+            batch[ANSWER].append("")
+
+
 def _get_extra_attributes(
     batch: dict[str, typ.Any],
     flat_sections_content: dict[str, typ.Any],
     *,
     sections_shape: tuple[int, int] | tuple[int],
+    extras_keys: None | set[str] = None,
 ) -> dict[str, None | dict[str, typ.Any]]:
+    extras_keys = extras_keys or set()
+    extras_keys |= {"id", "subset_id", "subset_ids"}  # Required keys
     if len(sections_shape) > 2:  # noqa: PLR2004
         raise ValueError(f"Expected a 1D or 2D shape. Found {sections_shape}")
-
-    # Define operators to apply to each extra key
-    extras_keys_ops = {
-        "id": None,
-        "language": None,
-        "subset_id": None,
-        "subset_ids": None,
-    }
 
     # Handle query attributes
     query_extras = {}
     query_extras["query__section_ids"] = batch[SECTION_IDS]
-    for k, fn in extras_keys_ops.items():
+    for k in extras_keys:
         if k not in batch:
             continue
         v = batch[k]
-        query_extras[f"query__{k}"] = fn(v) if fn is not None else v
+        query_extras[f"query__{k}"] = v
 
     # Handle section attributes
     sections_extras = {}
-    for k, fn in extras_keys_ops.items():
+    for k in extras_keys:
         if k not in flat_sections_content:
             continue
         v = flat_sections_content[k]
-        v = fn(v) if fn is not None else v
         if len(sections_shape) == 2:  # noqa: PLR2004
             if isinstance(v, torch.Tensor):
                 v = v.view(sections_shape)
@@ -348,3 +398,18 @@ def _validate_parameters(
             parameters[client] = default_value
 
     return parameters
+
+
+def _extract_relevances(batch: dict[str, typ.Any]) -> list[dict[str, float]]:
+    retrieval_ids = batch[RETRIEVAL_IDS]
+    retrieval_scores = batch[RELEVANCE_SCORES]
+    relevances = []
+    for ids, scores in zip(retrieval_ids, retrieval_scores):
+        relevances.append(dict(zip(ids, scores)))
+    return relevances
+
+
+def _fecth_section_content(sections: vt.DictsSequence, idx: list[int]) -> dict[str, list[typ.Any]]:
+    if isinstance(sections, datasets.Dataset):
+        return sections[idx]
+    raise NotImplementedError(f"Unsupported type: {type(sections)}")
