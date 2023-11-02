@@ -11,16 +11,13 @@ from loguru import logger
 from qdrant_client.http import models
 from src.vod_search.qdrant_local_search.models import Response, Query
 from qdrant_client.models import ExtendedPointId
+from vod_search.models import IndexSpecification
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int)
-    parser.add_argument("--vectors-filepath", type=str)
-    parser.add_argument("--index-specification", type=str)
-    parser.add_argument("--distance_metric", type=str)
-    parser.add_argument("--name", type=str, default="QDRANT_DATABASE")
     return parser.parse_args()
 
 
@@ -29,52 +26,9 @@ class QdrantDatabase:
 
     def __init__(
         self,
-        *,
-        vector_size: int,
-        name: str,
-        full_scan_threshold: int = 10_000,  # TODO specify somewhere
-        on_disk: bool = False,
-        index_specification,
     ) -> None:
+        self.collection_name = "QdrantLocalDatabase"
         self.db = QdrantClient(":memory:")  # or QdrantClient(path="path/to/db")
-        self.collection_name = name
-
-        # get parameters from index specification and create collection
-
-        self.db.recreate_collection(
-            collection_name=name,
-            vectors_config=models.VectorParams(size=vector_size, distance=index_specification["distance"]),
-            hnsw_config=models.HnswConfigDiff(
-                m=index_specification["m"],
-                ef_construct=100,  # TODO specify somewhere. can also be specified during search
-                full_scan_threshold=full_scan_threshold,
-                on_disk=on_disk,
-            ),
-            quantization_config=models.ScalarQuantization(
-                scalar=models.ScalarQuantizationConfig(
-                    type=models.ScalarType.INT8,
-                    quantile=index_specification["scalar_quantization"],
-                    always_ram=True,
-                ),
-            ),
-        )
-        # quantization_config=models.ProductQuantization(
-        #     product=models.ProductQuantizationConfig(
-        #         compression=models.CompressionRatio.X16,
-        #         always_ram=True,
-        #     ),
-        # )
-
-    def ingest_data(self, vectors: np.ndarray) -> None:
-        ids: list[ExtendedPointId] = list(range(len(vectors)))
-        self.db.upsert(
-            collection_name=self.collection_name,
-            points=models.Batch(
-                ids=ids,
-                vectors=vectors.tolist(),
-                payloads=None,
-            ),
-        )
 
     def _search_single(self, query_vector: list[float], limit: int = 3):
         return self.db.search(collection_name=self.collection_name, query_vector=query_vector, limit=limit)
@@ -92,33 +46,75 @@ class QdrantDatabase:
             indices.append([int(val.id) for val in query])
         return Response(scores=scores, indices=indices)
 
+    def build(self, vector_path: str, index_specification: IndexSpecification):
+        # load vectors
+        vectors: np.ndarray = np.load(vector_path, allow_pickle=True)
+        vectors_n, vectors_dim = vectors.shape
 
-# Build index
-args = parse_args()
-vectors: np.ndarray = np.load(args.vectors_filepath, allow_pickle=True)
+        # init database
+        self.db = QdrantClient(":memory:")  # or QdrantClient(path="path/to/db")
+        self.collection_name = "QdrantLocalDatabase"
 
-if args.distance_metric in {"COSINE", "COS"}:
-    distance_metric = models.Distance.COSINE
-elif args.distance_metric == "DOT":
-    distance_metric = models.Distance.DOT
-elif args.distance_metric in {"EUCLID", "L2"}:
-    distance_metric = models.Distance.EUCLID
-else:
-    distance_metric = models.Distance.COSINE
+        # get distance object
+        distance = {
+            "COSINE": models.Distance.COSINE,
+            "DOT": models.Distance.DOT,
+            "EUCLID": models.Distance.EUCLID,
+            "L2": models.Distance.EUCLID,
+            "COSINE": models.Distance.COSINE,
+        }[index_specification.distance]
 
-DB = QdrantDatabase(
-    vector_size=vectors.shape[1],
-    name=args.name,
-    index_specification=args.index_specification,
-)
-DB.ingest_data(vectors)
-app = FastAPI()
+        # create index
+        self.db.recreate_collection(
+            collection_name=self.collection_name,
+            vectors_config=models.VectorParams(size=vectors_dim, distance=distance),
+            hnsw_config=models.HnswConfigDiff(
+                m=index_specification.m,
+                ef_construct=100,  # TODO specify somewhere. can also be specified during search
+            ),
+            quantization_config=models.ScalarQuantization(
+                scalar=models.ScalarQuantizationConfig(
+                    type=models.ScalarType.INT8,
+                    quantile=index_specification.scalar_quantization,
+                    always_ram=True,
+                ),
+            ),
+        )
+        # quantization_config=models.ProductQuantization(
+        #     product=models.ProductQuantizationConfig(
+        #         compression=models.CompressionRatio.X16,
+        #         always_ram=True,
+        #     ),
+        # )
+
+        # add vectors
+        ids: list[ExtendedPointId] = list(range(len(vectors)))
+        self.db.upsert(
+            collection_name=self.collection_name,
+            points=models.Batch(
+                ids=ids,
+                vectors=vectors.tolist(),
+                payloads=None,
+            ),
+        )
+
+
+args = parse_args()  # parse host and port
+DB = QdrantDatabase()  # run qdrant
+app = FastAPI()  # run server
 
 
 @app.get("/")
 def health_check() -> str:
     """Check if the server is running."""
     return "OK"
+
+
+@app.post("/build")
+async def build(index_specification: IndexSpecification) -> None:
+    vectors_path = index_specification.vectors_path
+    print("recived build command with", vectors_path, index_specification)
+    DB.build(vectors_path, index_specification)
 
 
 @app.post("/search")

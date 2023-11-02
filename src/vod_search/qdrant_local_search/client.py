@@ -40,6 +40,20 @@ class QdrantLocalSearchClient(base.SearchClient):
         # response.raise_for_status()
         # return "OK" in response.text
 
+    def save_vectors_as_file(self, vectors: ndarray) -> str:
+        # since local qdrant cannot save or read indexes, vectors are passed to server using this file.
+        np.save("qdrant_local_vectors.npy", vectors)
+        return "qdrant_local_vectors.npy"
+
+    def build(self, vectors: ndarray, index_specification: IndexSpecification, timeout=60 * 10):
+        # save vectors in shared folder
+        vectors_path = self.save_vectors_as_file(vectors)
+        index_specification.vectors_path = vectors_path  # add to index_specification
+
+        # send build command to server
+        response = requests.post(f"{self.url}/build", json=index_specification.model_dump(), timeout=timeout)
+        response.raise_for_status()
+
     def search(
         self,
         *,
@@ -76,16 +90,11 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
     # or maybe not. Faiss gets a file, qdrant gets the vectors...
     def __init__(
         self,
-        vectors: np.ndarray,
-        index_specification: IndexSpecification,
         port=6333,
-        skip_setup: bool = False,
     ) -> None:
-        self.vectors = vectors
         self.host = "http://localhost"
         self.port = port
-        self.index_specification = index_specification
-        super().__init__(skip_setup)
+        super().__init__()
 
     def __repr__(self):
         return "QdrantLocalSearchMaster"
@@ -93,15 +102,9 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
     def get_client(self) -> QdrantLocalSearchClient:
         return QdrantLocalSearchClient(self.host, self.port)
 
-    def save_vectors_as_file(self) -> str:
-        # since local qdrant cannot save or read indexes, vectors are passed to server using this file.
-        np.save("qdrant_local_vectors.npy", self.vectors)
-        return "qdrant_local_vectors.npy"
-
     def _make_cmd(self) -> list[str]:
         # get the path to the server script
         # add arguments to server.py
-        vectors_filepath = self.save_vectors_as_file()
         server_run_path = Path(__file__).parent / "server.py"
         executable_path = sys.executable
         return [
@@ -111,14 +114,6 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
             str(self.host),
             "--port",
             str(self.port),
-            "--vectors-filepath",
-            vectors_filepath,
-            "--index-specification",
-            self.index_specification.index,
-            "--distance_metric",
-            self.index_specification.distance,
-            "--name",
-            "QdrantLocalDatabase",
         ]
 
     def _make_env(self) -> dict[str, str]:

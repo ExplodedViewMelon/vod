@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from vod_search import qdrant_local_search
+from vod_search.models import IndexSpecification
 import numpy as np
 
 """ TODO
@@ -32,9 +33,13 @@ database_vectors = np.random.random(size=(10_000, vector_size))
 query_vectors = np.random.random(size=(10, vector_size))
 
 with qdrant_local_search.QdrantLocalSearchMaster(
-    vectors=database_vectors,
     port=8888,
-    index_specification={"index": "HNSW", "m": 32, "distance": "COSINE", "scalar_quantization": 0.99},
 ) as master:
     client = master.get_client()
+    client.build(
+        database_vectors,
+        IndexSpecification(
+            index="HNSW", m=32, distance="COSINE", scalar_quantization=0.99, vectors_path="qdrant_local_vectors.npy"
+        ),
+    )
     print(client.search(vector=query_vectors, top_k=5))

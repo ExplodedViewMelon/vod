@@ -74,7 +74,8 @@ query_batch_size = 10
 
 dataset = DatasetLastFM()
 index_vectors, query_vectors = dataset.get_indices_and_queries_split(
-    n_query_vectors, query_batch_size, size_limit=10_000
+    n_query_vectors,
+    query_batch_size,  # size_limit=10_000
 )
 n, d = index_vectors.shape
 print(
@@ -94,7 +95,12 @@ _SearchMasters = [
     # milvus_search.MilvusSearchMaster,
 ]
 
-index_spec = IndexSpecification(index="HSNW", m=32, distance="COSINE", scalar_quantization=0.99)
+index_specifications = [
+    IndexSpecification(index="HSNW", m=2, distance="COSINE", scalar_quantization=0.50),
+    IndexSpecification(index="HSNW", m=8, distance="COSINE", scalar_quantization=0.95),
+    IndexSpecification(index="HSNW", m=32, distance="COSINE", scalar_quantization=0.99),
+    IndexSpecification(index="HSNW", m=64, distance="COSINE", scalar_quantization=0.99),
+]
 
 # timers
 benchmarkTimer = Timer()
@@ -105,14 +111,15 @@ benchmark_results = []
 
 benchmarkTimer.begin()
 for _SearchMaster in _SearchMasters:
-    for index_specification in [index_spec]:
-        sleep(5)  # wait for server to terminate before creating new
-        print("Spinning up server and building index...")
-        masterTimer.begin()
-        with _SearchMaster(vectors=index_vectors, index_specification=index_specification) as master:
-            masterTimer.end()
-
+    sleep(5)  # wait for server to terminate before creating new
+    print("Spinning up server...")
+    with _SearchMaster(port=8888) as master:
+        for index_specification in index_specifications:
+            masterTimer.begin()
+            print("Building index", index_specification)
             client = master.get_client()
+            client.build(index_vectors, index_specification)
+            masterTimer.end()
 
             recalls = []
             recalls_at_1 = []
