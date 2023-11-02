@@ -79,9 +79,7 @@ class FaissClient(base.SearchClient):
             "vectors": serialized_vectors,
             "top_k": top_k,
         }
-        response = requests.post(
-            f"{self.url}/fast-search", json=payload, timeout=timeout
-        )
+        response = requests.post(f"{self.url}/fast-search", json=payload, timeout=timeout)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as exc:

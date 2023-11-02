@@ -26,3 +26,26 @@ Metrics:
 
 Figure out how to standardize the build task.
 
+
+
+Simpliest benchmarks:
+
+scalar quantization (float -> int), for increase in speed
+product quantization (subvectors represented as centroids), for increase in memory
+index architecture (hsnw, ivf, composite indexes etc.)
+
+so. implement qdrant local with possibility to change
+ef
+scalar quantization
+product quantization
+
+do a large a.f. benchmark. save distributions
+
+
+Define some pedantic object for storing the index settings
+Write a faiss implementation that also creates the index
+ / just write a wrapper for the existing one.
+Streamline the benchmarking process for HSNW with options for quantization, m and ef.
+The search should be able to be built and run concurrently. Remember that.
+
+So the qdrant implementation might be bad. I'll also have to spin up a server everytime I build an index?

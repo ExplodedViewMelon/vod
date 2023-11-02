@@ -32,7 +32,9 @@ database_vectors = np.random.random(size=(10_000, vector_size))
 query_vectors = np.random.random(size=(10, vector_size))
 
 with qdrant_local_search.QdrantLocalSearchMaster(
-    vectors=database_vectors, port=8888, index_specification={"index": "HNSW16", "distance": "COSINE"}
+    vectors=database_vectors,
+    port=8888,
+    index_specification={"index": "HNSW", "m": 32, "distance": "COSINE", "scalar_quantization": 0.99},
 ) as master:
     client = master.get_client()
     print(client.search(vector=query_vectors, top_k=5))

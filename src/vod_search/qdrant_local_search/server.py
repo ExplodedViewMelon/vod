@@ -35,30 +35,35 @@ class QdrantDatabase:
         full_scan_threshold: int = 10_000,  # TODO specify somewhere
         on_disk: bool = False,
         index_specification,
-        distance_metric,
     ) -> None:
         self.db = QdrantClient(":memory:")  # or QdrantClient(path="path/to/db")
         self.collection_name = name
-        m: int = self.index_specification_parser(index_specification)
+
+        # get parameters from index specification and create collection
+
         self.db.recreate_collection(
             collection_name=name,
-            vectors_config=models.VectorParams(size=vector_size, distance=distance_metric),
+            vectors_config=models.VectorParams(size=vector_size, distance=index_specification["distance"]),
             hnsw_config=models.HnswConfigDiff(
-                m=m,
+                m=index_specification["m"],
                 ef_construct=100,  # TODO specify somewhere. can also be specified during search
                 full_scan_threshold=full_scan_threshold,
                 on_disk=on_disk,
             ),
+            quantization_config=models.ScalarQuantization(
+                scalar=models.ScalarQuantizationConfig(
+                    type=models.ScalarType.INT8,
+                    quantile=index_specification["scalar_quantization"],
+                    always_ram=True,
+                ),
+            ),
         )
-
-    def index_specification_parser(self, index_specification):
-        # e.g. "HNSW32"
-        assert index_specification[:4] == "HNSW"
-        if index_specification[4:] == "":
-            m = 16
-        else:
-            m = int(index_specification[4:])
-        return m
+        # quantization_config=models.ProductQuantization(
+        #     product=models.ProductQuantizationConfig(
+        #         compression=models.CompressionRatio.X16,
+        #         always_ram=True,
+        #     ),
+        # )
 
     def ingest_data(self, vectors: np.ndarray) -> None:
         ids: list[ExtendedPointId] = list(range(len(vectors)))
@@ -105,7 +110,6 @@ DB = QdrantDatabase(
     vector_size=vectors.shape[1],
     name=args.name,
     index_specification=args.index_specification,
-    distance_metric=distance_metric,
 )
 DB.ingest_data(vectors)
 app = FastAPI()

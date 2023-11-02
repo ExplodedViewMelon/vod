@@ -14,6 +14,7 @@ import numpy as np
 from numpy import ndarray
 import torch
 from vod_search.qdrant_local_search.models import Query, Response
+from vod_search.models import IndexSpecification
 
 
 class QdrantLocalSearchClient(base.SearchClient):
@@ -76,7 +77,7 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
     def __init__(
         self,
         vectors: np.ndarray,
-        index_specification: dict,
+        index_specification: IndexSpecification,
         port=6333,
         skip_setup: bool = False,
     ) -> None:
@@ -113,9 +114,9 @@ class QdrantLocalSearchMaster(base.SearchMaster[QdrantLocalSearchClient], abc.AB
             "--vectors-filepath",
             vectors_filepath,
             "--index-specification",
-            self.index_specification["index"],
+            self.index_specification.index,
             "--distance_metric",
-            self.index_specification["distance"],
+            self.index_specification.distance,
             "--name",
             "QdrantLocalDatabase",
         ]
