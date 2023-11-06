@@ -1,23 +1,99 @@
 from __future__ import annotations
+from pathlib import Path
+from typing import Any
 import numpy as np
+from numpy import ndarray
 from sklearn.neighbors import NearestNeighbors
 from time import perf_counter, sleep
 from rich.progress import track
 import pandas as pd
 import faiss
-from vod_search import qdrant_local_search, milvus_search
+from vod_search import qdrant_local_search, milvus_search, faiss_search, qdrant_search
 from vod_search.models import IndexSpecification
 from vod_benchmarking import DatasetGlove, DatasetLastFM, DatasetSift1M
 import pydantic
+import abc
+import tempfile
+
 
 """
 TODO
-implement index_specification for all databases.
 add databases to benchmark loop.
 take care of parameter defaults in e.g. qdrant.
 save the results in a document.
 generate plots with distributions etc.
+implement filtering and categories/subsets.
 """
+
+
+class QdrantWrapper(qdrant_search.QdrantSearchMaster):
+    def __init__(self, vectors: ndarray, index_specification: IndexSpecification, port=8888) -> None:
+        assert index_specification.index[:4] == "HNSW"  # only index supported
+        assert index_specification.distance == "DOT"  # hardcoded in client.py
+        qdrant_body = {
+            "shard_number": 1,
+            "hnsw_config": {
+                "ef_construct": 256,
+                "m": index_specification.m,
+            },
+        }
+        if index_specification.scalar_quantization:
+            qdrant_body["quantization_config"] = {
+                "scalar": {
+                    "type": f"int{index_specification.scalar_quantization}",
+                    "quantile": 0.99,
+                    "always_ram": True,
+                },
+            }
+
+        search_params = {
+            "hnsw_ef": 256,
+        }
+
+        super().__init__(vectors=vectors, port=port, qdrant_body=qdrant_body, search_params=search_params)
+
+    def __repr__(self) -> str:
+        return "QdrantSearchMaster"
+
+
+class FaissWrapper(faiss_search.FaissMaster):
+    def __init__(self, vectors: ndarray, index_specification: IndexSpecification, port=8888):
+        self.vectors = vectors
+        self.index_specification = (index_specification,)
+        self.port = port
+
+    def __enter__(self):
+        # build index for faiss search master
+        # factory_string = "IVFauto,Flat"
+        factory_string = self.convert_index_specification_to_faiss_factory_string(index_specification)
+        if index_specification.distance == "INNER":
+            faiss_metric = faiss.METRIC_INNER_PRODUCT
+        elif index_specification.distance in ("L2", "EUCLID", "DOT"):
+            faiss_metric = faiss.METRIC_L2  # TODO normalize if 'DOT'
+
+        index = faiss_search.build_faiss_index(vectors=self.vectors, factory_string=factory_string, faiss_metric=faiss_metric)  # type: ignore
+        # save into temp. folder
+        self.tmpdir = tempfile.TemporaryDirectory()
+        index_path = f"{self.tmpdir.name}/index.faiss"
+        faiss.write_index(index, index_path)
+
+        # continue with faiss search master
+        super().__init__(index_path=index_path, port=self.port)
+        return super().__enter__()
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        print("Cleaning up temp. folder")
+        self.tmpdir.cleanup()  # clean up the temporary folder
+        return super().__exit__(exc_type, exc_val, exc_tb)  # pass __exit__ onto faiss
+
+    def convert_index_specification_to_faiss_factory_string(self, index_specification: IndexSpecification) -> str:
+        factory_string = f"{index_specification.index}{index_specification.m}"
+        if index_specification.scalar_quantization:
+            factory_string += f"_SQ{index_specification.scalar_quantization}"
+        return factory_string
+
+    def __repr__(self) -> str:
+        return "FaissSearchMaster"
 
 
 def get_ground_truth(vectors: np.ndarray, query: np.ndarray, top_k: int) -> np.ndarray:
@@ -75,8 +151,7 @@ query_batch_size = 10
 
 dataset = DatasetLastFM()
 index_vectors, query_vectors = dataset.get_indices_and_queries_split(
-    n_query_vectors,
-    query_batch_size,  # size_limit=10_000
+    n_query_vectors, query_batch_size, size_limit=10_000
 )
 n, d = index_vectors.shape
 print(
@@ -91,16 +166,17 @@ print(
 )
 
 _SearchMasters = [
-    qdrant_local_search.QdrantLocalSearchMaster,
+    FaissWrapper,
+    QdrantWrapper,
+    # qdrant_local_search.QdrantLocalSearchMaster,
     # faiss_search.FaissMaster,
     # milvus_search.MilvusSearchMaster,
 ]
 
 index_specifications = [
-    IndexSpecification(index="HSNW", m=2, distance="COSINE", scalar_quantization=0.50),
-    IndexSpecification(index="HSNW", m=8, distance="COSINE", scalar_quantization=0.95),
-    IndexSpecification(index="HSNW", m=32, distance="COSINE", scalar_quantization=0.99),
-    IndexSpecification(index="HSNW", m=64, distance="COSINE", scalar_quantization=0.99),
+    IndexSpecification(index="HNSW", m=32, distance="DOT", scalar_quantization=8),
+    IndexSpecification(index="HNSW", m=64, distance="DOT", scalar_quantization=8),
+    IndexSpecification(index="HNSW", m=64, distance="DOT"),
 ]
 
 # timers
@@ -112,16 +188,12 @@ benchmark_results = []
 
 benchmarkTimer.begin()
 for _SearchMaster in _SearchMasters:
-    sleep(5)  # wait for server to terminate before creating new
-    print("Spinning up server...")
-    with _SearchMaster(port=8888) as master:
-        for (
-            index_specification
-        ) in index_specifications:  # this requires a rebuild option. Not implemented for qdrant and faiss.
-            masterTimer.begin()
-            print("Building index", index_specification)
+    for index_specification in index_specifications:
+        sleep(5)  # wait for server to terminate before creating new
+        print("Spinning up server...")
+        masterTimer.begin()  # time server startup and build
+        with _SearchMaster(vectors=index_vectors, index_specification=index_specification, port=8888) as master:
             client = master.get_client()
-            client.build(index_vectors, index_specification)
             masterTimer.end()
 
             recalls = []

@@ -48,6 +48,10 @@ def build_faiss_index(
     )
 
 
+from rich.progress import track
+from vod_tools import pretty
+
+
 def _build_faiss_index_on_cpu(
     vectors: vt.Sequence[np.ndarray],
     *,
@@ -62,14 +66,17 @@ def _build_faiss_index_on_cpu(
     if train_size is None:
         train_size = len(vectors)
 
-    for i in range(0, len(vectors), train_size):
+    for i in track(
+        range(0, len(vectors), train_size),
+        description=f"Faiss: Ingesting {pretty.human_format_nb(len(vectors))} vectors",
+    ):
         batch = vt.slice_arrays_sequence(vectors, slice(i, i + train_size))
         batch = np.asarray(batch).astype(np.float32)
         if i == 0:
-            logger.info(f"Training faiss index on `{len(batch)}` vectors " f"({len(batch) / len(vectors):.2%} (cpu)")
+            # logger.info(f"Training faiss index on `{len(batch)}` vectors " f"({len(batch) / len(vectors):.2%} (cpu)")
             index.train(batch)  # type: ignore
 
-        logger.info(f"Adding `{len(batch)}` vectors to the index ({len(batch) / len(vectors):.2%} (cpu)")
+        # logger.info(f"Adding `{len(batch)}` vectors to the index ({len(batch) / len(vectors):.2%} (cpu)")
         index.add(batch)
 
     if index.ntotal != len(vectors) or index.d != vector_size:

@@ -95,9 +95,7 @@ def run_faiss_server(host: str = args.host, port: int = args.port) -> None:
     """Start the API."""
     pattern = re.compile(r"^(http|https)://")
     host = re.sub(pattern, "", host)
-    uvicorn.run(
-        app, host=host, port=port, workers=1, log_level=args.logging_level.lower()
-    )
+    uvicorn.run(app, host=host, port=port, workers=1, log_level=args.logging_level.lower())
 
 
 if __name__ == "__main__":

@@ -43,3 +43,4 @@ from .milvus_search import (
     MilvusSearchClient,
     MilvusSearchMaster,
 )
+from .faiss_server import FaissServer
