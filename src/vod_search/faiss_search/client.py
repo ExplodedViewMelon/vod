@@ -44,6 +44,16 @@ class FaissClient(base.SearchClient):
         response.raise_for_status()
         return "OK" in response.text
 
+    def update_index(self, index_path: str, timeout=600) -> None:
+        """Update the index path."""
+        response = requests.post(
+            f"{self.url}/search",
+            json={"index_path": index_path},
+            timeout=timeout,
+        )
+        response.raise_for_status()  # TODO assert OK
+        return
+
     def search_py(self, query_vec: np.ndarray, top_k: int = 3, timeout: float = 120) -> vt.RetrievalBatch:
         """Search the server given a batch of vectors (slow implementation)."""
         response = requests.post(

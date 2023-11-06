@@ -18,6 +18,8 @@ from vod_search.faiss_search.models import (  # noqa: E402
     FaissSearchResponse,
     FastFaissSearchResponse,
     FastSearchFaissQuery,
+    InitializeIndexRequest,
+    InitResponse,
 )
 from vod_tools.misc.exceptions import dump_exceptions_to_file  # noqa: E402
 
@@ -71,6 +73,17 @@ async def search(query: SearchFaissQuery) -> FaissSearchResponse:
     query_vec = np.asarray(query.vectors, dtype=np.float32)
     scores, indices = faiss_index.search(query_vec, k=query.top_k)  # type: ignore
     return FaissSearchResponse(scores=scores.tolist(), indices=indices.tolist())
+
+
+@app.post("/update")
+def initialize(self, r: InitializeIndexRequest) -> str:
+    """Initialize the index."""
+    index = faiss.read_index(r.index_path)
+    index.nprobe = r.nprobe
+    self.f = index
+    if r.serve_on_gpu:
+        self.f = faiss.index_cpu_to_all_gpus(self.f, co=r.cloner_options)
+    return "OK"
 
 
 @dump_exceptions_to_file
