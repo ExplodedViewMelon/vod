@@ -13,9 +13,10 @@ import pydantic
 """
 TODO
 implement index_specification for all databases.
-add database to benchmark loop.
-fix the unassignable parameters in e.g. qdrant.
-put the results in a document.
+add databases to benchmark loop.
+take care of parameter defaults in e.g. qdrant.
+save the results in a document.
+generate plots with distributions etc.
 """
 
 
@@ -57,7 +58,7 @@ class Timer:
 
     @property
     def mean(self) -> float:
-        return np.mean(self.durations)
+        return float(np.mean(self.durations))
 
     def pk_latency(self, k) -> float:
         return np.percentile(self.durations, k)
@@ -114,7 +115,9 @@ for _SearchMaster in _SearchMasters:
     sleep(5)  # wait for server to terminate before creating new
     print("Spinning up server...")
     with _SearchMaster(port=8888) as master:
-        for index_specification in index_specifications:
+        for (
+            index_specification
+        ) in index_specifications:  # this requires a rebuild option. Not implemented for qdrant and faiss.
             masterTimer.begin()
             print("Building index", index_specification)
             client = master.get_client()

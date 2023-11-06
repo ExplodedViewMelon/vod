@@ -6,7 +6,7 @@ import numpy as np
 import rich
 from loguru import logger
 from rich.progress import track
-from vod_search import qdrant_search
+from vod_search.qdrant_search import QdrantSearchMaster
 from vod_tools import arguantic
 
 
@@ -31,7 +31,7 @@ def run(args: Args) -> None:
     subset_ids = [str(g) for g in np.linspace(0, args.n_categories, len(vectors)).astype("int64")]
 
     # Spin up a server
-    with qdrant_search.QdrantSearchMaster(
+    with QdrantSearchMaster(
         vectors=vectors,  # type: ignore
         subset_ids=subset_ids,
         index_name=index_name,
