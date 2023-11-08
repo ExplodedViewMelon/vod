@@ -5,10 +5,10 @@ import tempfile
 import asyncio
 
 
-async def repeat_querying(client):
+async def repeat_querying(client: FaissClient):
     while True:
-        query = np.ones(shape=(1, 128))
-        print("queried")
+        query = np.random.random(size=(1, 128))
+        print(client.search(vector=query, top_k=1))
         await asyncio.sleep(1)
 
 

@@ -25,6 +25,8 @@ from vod_tools.misc.exceptions import dump_exceptions_to_file  # noqa: E402
 
 from src import vod_configs  # noqa: E402
 
+app = FastAPI()
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
@@ -44,16 +46,6 @@ def init_index(arguments: argparse.Namespace) -> faiss.Index:
     index = faiss.read_index(arguments.index_path)
     index.nprobe = arguments.nprobe
     return index
-
-
-args = parse_args()
-app = FastAPI()
-logger.info("Starting API")
-faiss_index = init_index(args)
-if args.serve_on_gpu:
-    logger.info("Moving index to GPU")
-    co = vod_configs.FaissGpuConfig().cloner_options()
-    faiss_index = faiss.index_cpu_to_all_gpus(faiss_index, co=co)
 
 
 @app.get("/")
@@ -78,7 +70,6 @@ async def search(query: SearchFaissQuery) -> FaissSearchResponse:
 @app.post("/update")
 async def update(r: InitializeIndexRequest) -> str:
     global faiss_index
-    print(r)
     """Initialize the index."""
     faiss_index = faiss.read_index(r.index_path)
     # index.nprobe = r.nprobe
@@ -106,12 +97,30 @@ async def fast_search(query: FastSearchFaissQuery) -> FastFaissSearchResponse:
         raise HTTPException(status_code=500, detail=str(trace)) from exc
 
 
-def run_faiss_server(host: str = args.host, port: int = args.port) -> None:
+def run_faiss_server(host: str, port: int) -> None:
     """Start the API."""
     pattern = re.compile(r"^(http|https)://")
     host = re.sub(pattern, "", host)
     uvicorn.run(app, host=host, port=port, workers=1, log_level=args.logging_level.lower())
 
 
-if __name__ == "__main__":
-    run_faiss_server()
+def measure_memory(original_function):
+    def wrapper():
+        # Code to run before calling the original function
+        print("Something is happening before the function is called.")
+        original_function()  # Call the original function
+        # Code to run after calling the original function
+        print("Something is happening after the function is called.")
+
+    return wrapper  # Return the wrapper function
+
+
+args = parse_args()
+logger.info("Starting API")
+faiss_index = init_index(args)
+if args.serve_on_gpu:
+    logger.info("Moving index to GPU")
+    co = vod_configs.FaissGpuConfig().cloner_options()
+    faiss_index = faiss.index_cpu_to_all_gpus(faiss_index, co=co)
+
+run_faiss_server(args.host, args.port)

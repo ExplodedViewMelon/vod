@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 import numpy as np
 from numpy import ndarray
+import psutil
 from sklearn.neighbors import NearestNeighbors
 from time import perf_counter, sleep
 from rich.progress import track
@@ -151,7 +152,8 @@ query_batch_size = 10
 
 dataset = DatasetLastFM()
 index_vectors, query_vectors = dataset.get_indices_and_queries_split(
-    n_query_vectors, query_batch_size, size_limit=10_000
+    n_query_vectors,
+    query_batch_size,  # size_limit=10_000
 )
 n, d = index_vectors.shape
 print(
@@ -191,10 +193,12 @@ for _SearchMaster in _SearchMasters:
     for index_specification in index_specifications:
         sleep(5)  # wait for server to terminate before creating new
         print("Spinning up server...")
+        used_memory_before = psutil.virtual_memory().used
         masterTimer.begin()  # time server startup and build
         with _SearchMaster(vectors=index_vectors, index_specification=index_specification, port=8888) as master:
             client = master.get_client()
             masterTimer.end()
+            used_memory_after = psutil.virtual_memory().used
 
             recalls = []
             recalls_at_1 = []
@@ -225,13 +229,14 @@ for _SearchMaster in _SearchMasters:
                     "Index": master.__repr__(),
                     "Index spec.": index_specification.index,
                     "Index dist.": index_specification.distance,
-                    "Build speed": masterTimer.mean,
+                    "Build speed (s)": masterTimer.mean,
                     "Search speed avg. (ms)": searchTimer.mean * 1000,
                     "Search speed p95 (ms)": searchTimer.pk_latency(95) * 1000,
                     "Recall avg": np.mean(recalls),
                     "Recall@1": np.mean(recalls_at_1),
                     "Recall@10": np.mean(recalls_at_10),
                     "Recall@100": np.mean(recalls_at_100),
+                    "Est. memory usage (GB)": (used_memory_after - used_memory_before) / (1024**3),
                 }
             )
 
