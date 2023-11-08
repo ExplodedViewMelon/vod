@@ -1,20 +1,24 @@
 from pydantic import BaseModel, model_validator
+import pydantic
 
 
 class InitializeIndexRequest(BaseModel):
     """Configuration used to init/build an index."""
 
-    index_path: str
-    nprobe: int | None = 8
-    serve_on_gpu: bool = False
-    cloner_options: dict[str, str] | None = None
+    class Config:
+        """pydantic config."""
 
-    @model_validator(mode="after")
-    def check_cloner_options(self) -> "InitializeIndexRequest":
-        """Validate cloner options."""
-        if self.serve_on_gpu and not self.cloner_options:
-            raise ValueError("`cloner_options` must be provided when `serve_on_gpu` is `True`")
-        return self
+        frozen = False
+        extra = "forbid"
+
+    index_path: str = pydantic.Field(...)
+
+    # @model_validator(mode="after")
+    # def check_cloner_options(self) -> "InitializeIndexRequest":
+    #     """Validate cloner options."""
+    #     if self.serve_on_gpu and not self.cloner_options:
+    #         raise ValueError("`cloner_options` must be provided when `serve_on_gpu` is `True`")
+    #     return self
 
 
 class FaissInitConfig(BaseModel):

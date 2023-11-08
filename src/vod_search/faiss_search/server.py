@@ -76,13 +76,15 @@ async def search(query: SearchFaissQuery) -> FaissSearchResponse:
 
 
 @app.post("/update")
-def initialize(self, r: InitializeIndexRequest) -> str:
+async def update(r: InitializeIndexRequest) -> str:
+    global faiss_index
+    print(r)
     """Initialize the index."""
-    index = faiss.read_index(r.index_path)
-    index.nprobe = r.nprobe
-    self.f = index
-    if r.serve_on_gpu:
-        self.f = faiss.index_cpu_to_all_gpus(self.f, co=r.cloner_options)
+    faiss_index = faiss.read_index(r.index_path)
+    # index.nprobe = r.nprobe
+    # self.f = index
+    # if r.serve_on_gpu:
+    #     self.f = faiss.index_cpu_to_all_gpus(self.f, co=r.cloner_options)
     return "OK"
 
 
