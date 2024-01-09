@@ -25,9 +25,22 @@ from pymilvus import (
 )
 from loguru import logger
 from typing import Any, Iterable, Optional
+from rich.progress import track
 
 
 # from src.vod_search.milvus_search.models import Query, Response
+"""
+TODO
+DONE - allow for connecting to existing server
+DONE - implement batch loading
+implement pydantic database param specification
+    - pick a few supported index types hnsw etc.
+    - write down the parameters for each supported index type
+    - 
+implement groups / subsets, filtering etc.
+implement simple benchmarking setup
+clean up the connect statements. Why do these exist in the clients?
+"""
 
 
 class MilvusSearchClient(base.SearchClient):
@@ -37,9 +50,7 @@ class MilvusSearchClient(base.SearchClient):
         self,
         host: str,
         port: int,
-        grpc_port: None | int = None,  # TODO
         search_params: None = None,  # TODO
-        supports_groups: bool = True,  # TODO
         collection: Collection | None = None,
     ) -> None:
         self.host = host
@@ -49,12 +60,14 @@ class MilvusSearchClient(base.SearchClient):
 
     @property
     def _index_name(self) -> str:
+        """ "Return the name of the index"""
         if self.collection:
             return self.collection.name
         else:
-            return "NO_INDEX"
+            return "NO_INDEX"  # TODO raise error?
 
     def __repr__(self) -> str:
+        """Return a string representation of itself"""
         return (
             f"{type(self).__name__}[{self.host}:{self.port}]("
             f"requires_vectors={self.requires_vectors}, "
@@ -69,6 +82,7 @@ class MilvusSearchClient(base.SearchClient):
             return 0
 
     def _connect(self) -> bool:
+        """Connects this python instance to the server"""
         try:
             connections.connect("default", host=self.host, port=self.port)
             return True
@@ -76,6 +90,7 @@ class MilvusSearchClient(base.SearchClient):
             return False
 
     def _get_collection(self) -> None:
+        """Return collection instance"""
         self.collection = Collection("index_name")
 
     @property
@@ -90,19 +105,17 @@ class MilvusSearchClient(base.SearchClient):
     def search(
         self,
         *,
-        text: Optional[list[str]] = None,  # noqa: ARG002
         vector: Optional[ndarray],
-        group: Optional[list[str | int]] = None,
-        section_ids: Optional[list[list[str | int]]] = None,  # noqa: ARG002
         top_k: int = 3,
-    ) -> vt.RetrievalBatch:
-        if self.collection == None:
-            print("No collection passed - getting from server")
-            self._get_collection()
-        search_params = {
+        search_params={
             "metric_type": "L2",
             "params": {"nprobe": 10},
-        }
+        },
+    ) -> vt.RetrievalBatch:
+        if self.collection == None:
+            print("No collection - getting from server")
+            self._get_collection()
+
         result: SearchResult = self.collection.search(vector.tolist(), "embeddings", search_params, limit=top_k, _async=False)  # type: ignore
 
         return _search_batch_to_rdtypes(result, top_k)
@@ -130,64 +143,34 @@ def _search_batch_to_rdtypes(batch: SearchResult, top_k: int) -> vt.RetrievalBat
 class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
     """A class that manages a search server."""
 
+    _timeout: float = 30 * 60  # extended timeout to allow for downloading milvus docker image
     _allow_existing_server: bool = True
 
     def __init__(
         self,
-        vectors: ndarray,
+        vectors: ndarray,  # rewrite to sequence
         *,
-        groups: Optional[Iterable[str | int]] = None,
         host: str = "localhost",
-        grpc_port: None | int = 6334,
-        index_name: Optional[str] = "database",
-        persistent: bool = True,
-        exist_ok: bool = True,
-        skip_setup: bool = False,
-        index_body: Optional[dict[str, Any]] = {
+        index_params: Optional[dict[str, Any]] = {  # TODO these must be pydantic things. One for each type of index.
             "index_type": "IVF_FLAT",
             "metric_type": "L2",
             "params": {"nlist": 128},
         },
-        search_params: Optional[dict[str, Any]] = None,
-        force_single_collection: bool = True,
     ) -> None:
-        self._allow_existing_server = True
         self.vectors = vectors
         self.host = host
         self.port = 19530  # this can't be changed I believe.
         self.collection = None
-        self.index_name = index_name
-        self.index_body = index_body
+        self.index_params = index_params
+        self.batch_size = 1000
+
+        skip_setup = False
         super().__init__(skip_setup)
 
-    def _build_index(self) -> None:
-        connections.connect("default", host=self.host, port=self.port)
-        if utility.has_collection("index_name"):
-            logger.info("Collection already exists, deleting.")
-            utility.drop_collection("index_name")
-
-        logger.info("Creating collection 'index_name'")
-        database_size = len(self.vectors)
-        vector_shape = self.vectors[0].shape
-        vector_size = vector_shape[0]
-        if len(vector_shape) != 1:
-            raise ValueError(f"Expected a 1D vectors, got {vector_shape}")
-
-        # TODO fill make it possible to specify all the below in some passed struct
-        fields = [
-            FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
-            FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=vector_size),
-        ]
-        schema = CollectionSchema(fields, "Milvus database - so far so good")
-        collection = Collection("index_name", schema, consistency_level="Strong")
-        entities = [list(range(database_size)), self.vectors]
-        insert_result = collection.insert(entities)
-        collection.flush()  # seals the unfilled buckets
-        collection.create_index("embeddings", self.index_body)
-        collection.load()  # load index into server
-        self.collection = collection
-
     def _on_init(self) -> None:
+        """Connect to server and build index"""
+        connections.connect("default", host=self.host, port=self.port)
+        self._delete_existing_collection()
         self._build_index()
 
     def _on_exit(self) -> None:
@@ -204,3 +187,35 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             "up",
             "-d",
         ]
+
+    def _delete_existing_collection(self) -> None:
+        if utility.has_collection("index_name"):
+            logger.info("Collection already exists, deleting.")
+            utility.drop_collection("index_name")
+
+    def _build_index(self) -> None:
+        logger.info("Creating collection 'index_name'")
+        if len(self.vectors.shape) != 2:
+            raise ValueError(f"Expected a NxD vectors, got {self.vectors.shape}")
+        N, D = self.vectors.shape
+
+        # TODO fill make it possible to specify all the below in some passed struct
+        # or maybe not idk. but rewrite such that it support groups / subsets for filtering etc.
+        fields = [
+            FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
+            FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=D),
+        ]
+        schema = CollectionSchema(fields, "Milvus database - so far so good")
+        collection = Collection("index_name", schema, consistency_level="Strong")
+
+        for j in track(range(0, N, self.batch_size), description=f"Milvus: Ingesting {N} vectors of size {D}"):
+            entities = [
+                list(range(j, j + self.batch_size)),
+                self.vectors[j : j + self.batch_size],
+            ]  # rewrite to type sequence
+            collection.insert(entities)
+
+        collection.flush()  # seals the unfilled buckets
+        collection.create_index("embeddings", self.index_params)
+        collection.load()  # load index into server
+        self.collection = collection

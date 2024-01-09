@@ -265,7 +265,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
             logger.debug(f"Forcing single collection for {_get_client_url(client)}")
             _delete_except([self._index_name], client)
 
-        # Check wheter the index exist
+        # Check whether the index exist
         index_exist = _collection_exists(client, self._index_name)
         if index_exist and not self._exist_ok:
             raise FileNotFoundError(f"{_collection_name(self._index_name, escape_rich=False)}: already exists.")
