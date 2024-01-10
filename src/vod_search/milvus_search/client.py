@@ -27,6 +27,8 @@ from loguru import logger
 from typing import Any, Iterable, Optional
 from rich.progress import track
 
+from vod_search.models import *
+
 
 # from src.vod_search.milvus_search.models import Query, Response
 """
@@ -40,6 +42,20 @@ implement pydantic database param specification
 implement groups / subsets, filtering etc.
 implement simple benchmarking setup
 clean up the connect statements. Why do these exist in the clients?
+make a some graph of the different index types memory / speed / recall
+"""
+
+"""
+** A START **
+
+- Preprocessing - 
+product quantization
+scalar quantization
+
+
+- Index types -
+IVF - n_probe, n_partition
+HNSW - ef_construction, ef_search, M
 """
 
 
@@ -81,10 +97,10 @@ class MilvusSearchClient(base.SearchClient):
         else:
             return 0
 
-    def _connect(self) -> bool:
+    def _connect(self) -> bool:  # TODO consider removing this
         """Connects this python instance to the server"""
         try:
-            connections.connect("default", host=self.host, port=self.port)
+            # connections.connect("default", host=self.host, port=self.port)
             return True
         except:
             return False
@@ -109,7 +125,10 @@ class MilvusSearchClient(base.SearchClient):
         top_k: int = 3,
         search_params={
             "metric_type": "L2",
-            "params": {"nprobe": 10},
+            "params": {
+                "nprobe": 10,
+                "ef": 100,
+            },
         },
     ) -> vt.RetrievalBatch:
         if self.collection == None:
@@ -149,19 +168,15 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
     def __init__(
         self,
         vectors: ndarray,  # rewrite to sequence
+        index_parameters: IndexParameters,
         *,
         host: str = "localhost",
-        index_params: Optional[dict[str, Any]] = {  # TODO these must be pydantic things. One for each type of index.
-            "index_type": "IVF_FLAT",
-            "metric_type": "L2",
-            "params": {"nlist": 128},
-        },
     ) -> None:
         self.vectors = vectors
         self.host = host
         self.port = 19530  # this can't be changed I believe.
         self.collection = None
-        self.index_params = index_params
+        self.index_parameters = index_parameters
         self.batch_size = 1000
 
         skip_setup = False
@@ -193,6 +208,51 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             logger.info("Collection already exists, deleting.")
             utility.drop_collection("index_name")
 
+    def _make_index_parameters(self):
+        preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
+        index_type: HNSW | IVF = self.index_parameters.index_type
+
+        if isinstance(index_type, IVF):  # TODO move n_probe to search
+            if isinstance(preprocessing, ProductQuantization):
+                return {
+                    "index_type": "IVF_PQ",
+                    "metric_type": self.index_parameters.metric,
+                    "params": {
+                        "nlist": index_type.n_partition,
+                        "m": preprocessing.m,
+                        "nbits": preprocessing.n_bits,
+                    },
+                }
+            elif isinstance(preprocessing, ScalarQuantization):
+                assert preprocessing.n == 8  # SQ8 is the only supported
+                return {
+                    "index_type": "IVF_SQ8",
+                    "metric_type": self.index_parameters.metric,
+                    "params": {
+                        "nlist": index_type.n_partition,
+                    },
+                }
+            else:  # preprocessing is None
+                return {
+                    "index_type": "IVF_FLAT",
+                    "metric_type": self.index_parameters.metric,
+                    "params": {
+                        "nlist": index_type.n_partition,
+                    },
+                }
+
+        if isinstance(index_type, HNSW):
+            assert preprocessing == None  # Milvus does not support quantizers for hnsw.
+            return {
+                "index_type": "HNSW",
+                "metric_type": self.index_parameters.metric,
+                "params": {
+                    "M": index_type.M,
+                    "efConstruction": index_type.ef_construction,
+                    # "ef": index_type.ef_search,  # TODO move to search
+                },
+            }
+
     def _build_index(self) -> None:
         logger.info("Creating collection 'index_name'")
         if len(self.vectors.shape) != 2:
@@ -216,6 +276,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             collection.insert(entities)
 
         collection.flush()  # seals the unfilled buckets
-        collection.create_index("embeddings", self.index_params)
+        index_parameters = self._make_index_parameters()
+        collection.create_index("embeddings", index_parameters)
         collection.load()  # load index into server
         self.collection = collection
