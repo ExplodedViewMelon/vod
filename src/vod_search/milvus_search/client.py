@@ -35,27 +35,28 @@ from vod_search.models import *
 TODO
 DONE - allow for connecting to existing server
 DONE - implement batch loading
-implement pydantic database param specification
-    - pick a few supported index types hnsw etc.
-    - write down the parameters for each supported index type
-    - 
+DONE - implement database param specification
+    DONE - pick a few supported index types hnsw etc.
+    DONE - write down the parameters for each supported index type
+    ** A START **
+
+    - Preprocessing - 
+    product quantization
+    scalar quantization
+
+
+    - Index types -
+    IVF - n_probe, n_partition
+    HNSW - ef_construction, ef_search, M
+DONE - implement simple benchmarking setup
+DONE clean up the connect statements. Why do these exist in the clients? Answer: as a ping to the server
+
+implement in qdrant as well
+make automatic test to ensure that all works well
+find a better dataset - maybe something with sentences to see whether things work or not.
+
 implement groups / subsets, filtering etc.
-implement simple benchmarking setup
-clean up the connect statements. Why do these exist in the clients?
 make a some graph of the different index types memory / speed / recall
-"""
-
-"""
-** A START **
-
-- Preprocessing - 
-product quantization
-scalar quantization
-
-
-- Index types -
-IVF - n_probe, n_partition
-HNSW - ef_construction, ef_search, M
 """
 
 
@@ -66,12 +67,13 @@ class MilvusSearchClient(base.SearchClient):
         self,
         host: str,
         port: int,
-        search_params: None = None,  # TODO
+        master: MilvusSearchMaster,
         collection: Collection | None = None,
     ) -> None:
         self.host = host
         self.port = port
         self._connect()
+        self.master = master
         self.collection = collection
 
     @property
@@ -100,7 +102,7 @@ class MilvusSearchClient(base.SearchClient):
     def _connect(self) -> bool:  # TODO consider removing this
         """Connects this python instance to the server"""
         try:
-            # connections.connect("default", host=self.host, port=self.port)
+            connections.connect("default", host=self.host, port=self.port)  # already connected but serves as a ping.
             return True
         except:
             return False
@@ -118,25 +120,33 @@ class MilvusSearchClient(base.SearchClient):
         """Ping the server."""
         return self._connect()
 
+    def _make_search_params(self):
+        if isinstance(self.master.index_parameters.index_type, IVF):
+            return {
+                "metric_type": self.master.index_parameters.metric,
+                "params": {
+                    "nprobe": self.master.index_parameters.index_type.n_probe,
+                },
+            }
+        elif isinstance(self.master.index_parameters.index_type, HNSW):
+            return {
+                "metric_type": self.master.index_parameters.metric,
+                "params": {
+                    "ef": self.master.index_parameters.index_type.ef_search,
+                },
+            }
+
     def search(
         self,
         *,
         vector: Optional[ndarray],
-        top_k: int = 3,
-        search_params={
-            "metric_type": "L2",
-            "params": {
-                "nprobe": 10,
-                "ef": 100,
-            },
-        },
     ) -> vt.RetrievalBatch:
         if self.collection == None:
             print("No collection - getting from server")
             self._get_collection()
 
-        result: SearchResult = self.collection.search(vector.tolist(), "embeddings", search_params, limit=top_k, _async=False)  # type: ignore
-
+        top_k: int = self.master.index_parameters.top_k
+        result: SearchResult = self.collection.search(vector.tolist(), "embeddings", param=self._make_search_params(), limit=top_k, _async=False)  # type: ignore
         return _search_batch_to_rdtypes(result, top_k)
 
 
@@ -192,7 +202,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         utility.drop_collection("index_name")
 
     def get_client(self) -> MilvusSearchClient:
-        return MilvusSearchClient(host=self.host, port=self.port, collection=self.collection)
+        return MilvusSearchClient(host=self.host, port=self.port, master=self, collection=self.collection)
 
     def _make_cmd(self) -> list[str]:
         # TODO # docker compose up -d
@@ -220,7 +230,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
                     "params": {
                         "nlist": index_type.n_partition,
                         "m": preprocessing.m,
-                        "nbits": preprocessing.n_bits,
+                        # "nbits": preprocessing.n_bits,
                     },
                 }
             elif isinstance(preprocessing, ScalarQuantization):

@@ -8,8 +8,12 @@ import numpy as np
 import requests
 import rich
 import vod_types as vt
-from vod_search import base, io
+from vod_search import base, faiss_search, io
 from vod_search.socket import find_available_port
+
+from vod_search.models import *
+
+import faiss
 
 # get the path to the server script
 server_run_path = Path(__file__).parent / "server.py"
@@ -125,10 +129,12 @@ class FaissMaster(base.SearchMaster[FaissClient]):
     ```
     """
 
+    index_parameters: IndexParameters
+
     def __init__(  # noqa: PLR0913
         self,
-        index_path: str | Path,
-        nprobe: int = 8,
+        vectors,
+        index_parameters,
         logging_level: str = "DEBUG",
         host: str = "http://localhost",
         port: int = 6637,
@@ -137,14 +143,16 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         serve_on_gpu: bool = False,
     ):
         super().__init__(skip_setup=skip_setup, free_resources=free_resources)
-        self.index_path = Path(index_path)
-        self.nprobe = nprobe
+        self.vectors = vectors
+        self.index_parameters = index_parameters
         self.logging_level = logging_level
         self.host = host
         if port < 0:
             port = find_available_port()
         self.port = port
         self.serve_on_gpu = serve_on_gpu
+
+        self._build_index()
 
     def _make_env(self) -> dict[str, str]:
         env = copy(dict(os.environ))
@@ -164,9 +172,9 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             str(executable_path),
             str(server_run_path),
             "--index-path",
-            str(self.index_path.absolute()),
+            str(self.index_path),
             "--nprobe",
-            str(self.nprobe),
+            str(10),  # TODO
             "--host",
             str(self.host),
             "--port",
@@ -194,3 +202,44 @@ class FaissMaster(base.SearchMaster[FaissClient]):
     def service_name(self) -> str:
         """Return the name of the service."""
         return super().service_name + f"-{self.port}"
+
+    def _get_factory_string(self):
+        import faiss
+
+        preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
+        index_type: HNSW | IVF = self.index_parameters.index_type
+
+        if isinstance(index_type, IVF):  # TODO move n_probe to search
+            if isinstance(preprocessing, ProductQuantization):
+                # return f"IVF{index_type.n_partition},PQ{preprocessing.m}x{preprocessing.n_bits}" # this does work but nbits are temp. dropped.
+                return f"IVF{index_type.n_partition},PQ{preprocessing.m}"
+            elif isinstance(preprocessing, ScalarQuantization):
+                return f"IVF{index_type.n_partition},SQ{preprocessing.n}"
+            else:  # preprocessing is None
+                return f"IVF{index_type.n_partition},Flat"
+
+        if isinstance(index_type, HNSW):
+            if isinstance(preprocessing, ProductQuantization):
+                return f"HNSW{index_type.M},PQ{preprocessing.m}"
+            elif isinstance(preprocessing, ScalarQuantization):
+                return f"HNSW{index_type.M},SQ{preprocessing.n}"
+            else:  # preprocessing is None
+                return f"HNSW{index_type.M},Flat"
+
+            # TODO also include ef_construction and ef_search
+
+    def _build_index(self) -> None:
+        factory_string = self._get_factory_string()
+
+        index = faiss_search.build_faiss_index(vectors=self.vectors, factory_string=factory_string)
+
+        self.index_path = "./temp_index.faiss"
+        faiss.write_index(index, self.index_path)
+
+    def _cleanup(self):
+        # Delete the faiss index
+        if os.path.exists("./temp_index.faiss"):
+            os.remove("./temp_index.faiss")
+
+    def _on_exit(self) -> None:
+        self._cleanup()

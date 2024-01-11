@@ -1,7 +1,16 @@
 from __future__ import annotations
 
-from vod_search import milvus_search
+import tempfile
+import time
+
+import faiss
 import numpy as np
+import rich
+from loguru import logger
+from rich.progress import track
+from vod_search import faiss_search
+from vod_tools import arguantic
+
 from vod_search.models import *
 
 
@@ -15,20 +24,19 @@ def all_index_param():
     ]
     index_types = [
         IVF(n_partition=10, n_probe=1),
-        IVF(n_partition=100, n_probe=10),
-        HNSW(M=5, ef_construction=10, ef_search=15),
-        HNSW(M=10, ef_construction=100, ef_search=150),
+        IVF(n_partition=100, n_probe=1),
+        HNSW(M=5, ef_construction=10, ef_search=5),
+        HNSW(M=10, ef_construction=10, ef_search=5),
     ]
-    metrics = [  # add cosine
+    metrics = [
+        "DOT",
         "L2",
-        "IP",
-        "COSINE",
     ]
 
     _all_index_param = []
 
-    for index_type in index_types:
-        for preprocessing in preprocessings:
+    for preprocessing in preprocessings:
+        for index_type in index_types:
             for metric in metrics:
                 _all_index_param.append(
                     IndexParameters(
@@ -62,6 +70,12 @@ query_vectors = np.random.random(size=(10, vector_size))
 for index_parameters in all_index_param():
     print("Testing with", index_parameters)
     # Spin up a Faiss server
-    with milvus_search.MilvusSearchMaster(vectors, index_parameters) as master:  # type: ignore
+    with faiss_search.FaissMaster(vectors, index_parameters) as master:
         client = master.get_client()
-        print(client.search(vector=query_vectors))
+        rich.print(client)
+
+        results = client.search(
+            vector=query_vectors,
+            top_k=3,
+        )
+        rich.print({"search_results": results})

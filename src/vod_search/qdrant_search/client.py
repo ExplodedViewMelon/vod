@@ -23,6 +23,8 @@ from rich.progress import track
 from vod_search import base
 from vod_tools import pretty
 
+from vod_search.models import *
+
 QDRANT_SUBSET_ID_KEY: str = "_SUBSET_ID_"
 
 
@@ -186,6 +188,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
     def __init__(  # noqa: PLR0913
         self,
         vectors: vt.Sequence[np.ndarray],
+        index_parameters: IndexParameters,
         *,
         subset_ids: Optional[Iterable[str | int]] = None,
         host: str = "http://localhost",
@@ -205,6 +208,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         self._port = port
         self._grpc_port = grpc_port
         self._vectors = vectors
+        self.index_parameters = index_parameters
         self._input_groups = subset_ids
         if index_name is None:
             index_name = f"auto-{uuid.uuid4().hex}"
@@ -283,7 +287,8 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
 
         if not index_exist:
             # Create the index & Ingest the data
-            body = _make_qdrant_body(vshp[-1], self._qdrant_body)
+            # body = _make_qdrant_body(vshp[-1], self._qdrant_body)
+            body = _make_index_parameters(vshp[-1], self.index_parameters)
             client.recreate_collection(collection_name=self._index_name, **body)
 
             with DisableIndexing(client, self._index_name, delete_on_exception=True):
@@ -404,6 +409,45 @@ class DisableIndexing:
             )
 
 
+def _make_index_parameters(dim: int, index_parameters: IndexParameters):
+    """param specification to be passed as arguements for build_index in master object"""
+
+    assert isinstance(index_parameters.index_type, HNSW)  # qdrant only supports HNSW
+
+    distance_metric = qdrm.Distance.EUCLID  # map distance to qdrants notation (it's just capitalized words in the end)
+    if index_parameters.metric == "L2":
+        distance_metric = qdrm.Distance.EUCLID
+    elif index_parameters.metric == "COSINE":
+        distance_metric = qdrm.Distance.COSINE
+    elif index_parameters.metric == "DOT":
+        distance_metric = qdrm.Distance.DOT
+
+    if isinstance(index_parameters.preprocessing, ScalarQuantization):
+        quantization_config = qdrm.ScalarQuantization(
+            scalar=qdrm.ScalarQuantizationConfig(
+                type="int8", quantile=0.99  # type: ignore
+            )  # TODO figure these quantiles
+        )
+    elif isinstance(index_parameters.preprocessing, ProductQuantization):
+        quantization_config = qdrm.ProductQuantization(
+            product=qdrm.ProductQuantizationConfig(compression=qdrm.CompressionRatio.X4)  # TODO figure this compression
+        )
+    else:
+        quantization_config = None  # TODO make sure this works as intended
+
+    body = {}
+    body["vectors_config"] = qdrm.VectorParams(
+        size=dim,
+        distance=distance_metric,
+        hnsw_config=qdrm.HnswConfigDiff(
+            m=index_parameters.index_type.M,
+            ef_construct=index_parameters.index_type.ef_construction,
+        ),
+        quantization_config=quantization_config,
+    )
+    return body
+
+
 def _make_qdrant_body(dim: int, body: Optional[dict[str, Any]]) -> dict[str, Any]:
     """Make the default Qdrant configuration body."""
     body = copy.deepcopy(body) or {}
@@ -411,7 +455,9 @@ def _make_qdrant_body(dim: int, body: Optional[dict[str, Any]]) -> dict[str, Any
         **{
             "size": int(dim),
             "distance": qdrm.Distance.DOT,
-            **body.get("vectors_config", {}),
+            **body.get(
+                "vectors_config", {}
+            ),  # add the existing body params, if specified, otherwise add an empty array.
         }
     )
     if "quantization_config" in body and body["quantization_config"] is not None:

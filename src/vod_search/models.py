@@ -14,11 +14,12 @@ class IndexSpecification(pydantic.BaseModel):
 
 class ProductQuantization:
     m: int
-    n_bits: int
 
-    def __init__(self, *, m, n_bits=8) -> None:
+    def __init__(self, *, m) -> None:
         self.m = m
-        self.n_bits = n_bits
+
+    def __repr__(self) -> str:
+        return f"PQ{self.m}"
 
 
 class ScalarQuantization:
@@ -27,20 +28,26 @@ class ScalarQuantization:
     def __init__(self, *, n) -> None:
         self.n = n
 
+    def __repr__(self) -> str:
+        return f"SQ{self.n}"
+
 
 class HNSW:
     name: str = "HNSW"
-    ef_construction: int
     M: int
+    ef_construction: int
     ef_search: int  # search
 
-    def __init__(self, *, ef_construction, ef_search, M) -> None:
+    def __init__(self, *, M, ef_construction, ef_search) -> None:
+        assert M > 0
         assert ef_construction > 0
         assert ef_search > 0
-        assert M > 0
+        self.M = M
         self.ef_construction = ef_construction
         self.ef_search = ef_search
-        self.M = M
+
+    def __repr__(self) -> str:
+        return f"{self.name}, M={self.M}, ef_construction={self.ef_construction}, ef_search={self.ef_search}"
 
 
 class IVF:
@@ -54,6 +61,9 @@ class IVF:
         self.n_partition = n_partition
         self.n_probe = n_probe
 
+    def __repr__(self) -> str:
+        return f"{self.name}, n_partition={self.n_partition}"
+
 
 class IndexParameters(abc.ABC):
     preprocessing: None | ProductQuantization | ScalarQuantization
@@ -66,3 +76,6 @@ class IndexParameters(abc.ABC):
         self.index_type = index_type
         self.metric = metric
         self.top_k = top_k
+
+    def __repr__(self) -> str:
+        return f"{self.index_type}, {self.preprocessing}, {self.metric}, {self.top_k}"
