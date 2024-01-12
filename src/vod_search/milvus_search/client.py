@@ -30,36 +30,6 @@ from rich.progress import track
 from vod_search.models import *
 
 
-# from src.vod_search.milvus_search.models import Query, Response
-"""
-TODO
-DONE - allow for connecting to existing server
-DONE - implement batch loading
-DONE - implement database param specification
-    DONE - pick a few supported index types hnsw etc.
-    DONE - write down the parameters for each supported index type
-    ** A START **
-
-    - Preprocessing - 
-    product quantization
-    scalar quantization
-
-
-    - Index types -
-    IVF - n_probe, n_partition
-    HNSW - ef_construction, ef_search, M
-DONE - implement simple benchmarking setup
-DONE clean up the connect statements. Why do these exist in the clients? Answer: as a ping to the server
-
-implement in qdrant as well
-make automatic test to ensure that all works well
-find a better dataset - maybe something with sentences to see whether things work or not.
-
-implement groups / subsets, filtering etc.
-make a some graph of the different index types memory / speed / recall
-"""
-
-
 class MilvusSearchClient(base.SearchClient):
     requires_vectors: bool = True
 
@@ -82,7 +52,7 @@ class MilvusSearchClient(base.SearchClient):
         if self.collection:
             return self.collection.name
         else:
-            return "NO_INDEX"  # TODO raise error?
+            return "NO_INDEX"  # NOTE should this raise an error?
 
     def __repr__(self) -> str:
         """Return a string representation of itself"""
@@ -99,10 +69,10 @@ class MilvusSearchClient(base.SearchClient):
         else:
             return 0
 
-    def _connect(self) -> bool:  # TODO consider removing this
+    def _connect(self) -> bool:  # NOTE this also serves as a ping
         """Connects this python instance to the server"""
         try:
-            connections.connect("default", host=self.host, port=self.port)  # already connected but serves as a ping.
+            connections.connect("default", host=self.host, port=self.port)
             return True
         except:
             return False
@@ -205,7 +175,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         return MilvusSearchClient(host=self.host, port=self.port, master=self, collection=self.collection)
 
     def _make_cmd(self) -> list[str]:
-        # TODO # docker compose up -d
         return [
             "docker",
             "compose",
@@ -222,7 +191,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
         index_type: HNSW | IVF = self.index_parameters.index_type
 
-        if isinstance(index_type, IVF):  # TODO move n_probe to search
+        if isinstance(index_type, IVF):
             if isinstance(preprocessing, ProductQuantization):
                 return {
                     "index_type": "IVF_PQ",
@@ -259,7 +228,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
                 "params": {
                     "M": index_type.M,
                     "efConstruction": index_type.ef_construction,
-                    # "ef": index_type.ef_search,  # TODO move to search
                 },
             }
 
@@ -269,8 +237,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             raise ValueError(f"Expected a NxD vectors, got {self.vectors.shape}")
         N, D = self.vectors.shape
 
-        # TODO fill make it possible to specify all the below in some passed struct
-        # or maybe not idk. but rewrite such that it support groups / subsets for filtering etc.
         fields = [
             FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
             FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=D),
@@ -290,3 +256,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         collection.create_index("embeddings", index_parameters)
         collection.load()  # load index into server
         self.collection = collection
+
+    def __repr__(self) -> str:
+        return f"index: qdrant {self.index_parameters}"

@@ -14,6 +14,7 @@ from vod_search.socket import find_available_port
 from vod_search.models import *
 
 import faiss
+import tempfile
 
 # get the path to the server script
 server_run_path = Path(__file__).parent / "server.py"
@@ -55,7 +56,7 @@ class FaissClient(base.SearchClient):
             json={"index_path": index_path},
             timeout=timeout,
         )
-        response.raise_for_status()  # TODO assert OK
+        response.raise_for_status()
         return "OK" in response.text
 
     def search_py(self, query_vec: np.ndarray, top_k: int = 3, timeout: float = 120) -> vt.RetrievalBatch:
@@ -130,6 +131,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
     """
 
     index_parameters: IndexParameters
+    _allow_existing_server: bool = True
 
     def __init__(  # noqa: PLR0913
         self,
@@ -155,7 +157,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         self._build_index()
 
     def _make_env(self) -> dict[str, str]:
-        env = copy(dict(os.environ))
+        env = copy(dict(os.environ))  # type: ignore
         if "KMP_DUPLICATE_LIB_OK" not in env:
             env["KMP_DUPLICATE_LIB_OK"] = "TRUE"
         env["LOGURU_LEVEL"] = self.logging_level.upper()
@@ -167,14 +169,14 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         return env
 
     def _make_cmd(self) -> list[str]:
-        executable_path = sys.executable
+        executable_path = sys.executable  # TODO also pass ef_search
         return [
             str(executable_path),
             str(server_run_path),
             "--index-path",
             str(self.index_path),
             "--nprobe",
-            str(10),  # TODO
+            str(self.index_parameters.index_type.n_probe) if isinstance(self.index_parameters.index_type, IVF) else "0",
             "--host",
             str(self.host),
             "--port",
@@ -204,8 +206,6 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         return super().service_name + f"-{self.port}"
 
     def _get_factory_string(self):
-        import faiss
-
         preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
         index_type: HNSW | IVF = self.index_parameters.index_type
 
@@ -226,20 +226,24 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             else:  # preprocessing is None
                 return f"HNSW{index_type.M},Flat"
 
-            # TODO also include ef_construction and ef_search
+            # TODO include ef_construction and ef_search.
 
     def _build_index(self) -> None:
         factory_string = self._get_factory_string()
 
         index = faiss_search.build_faiss_index(vectors=self.vectors, factory_string=factory_string)
 
-        self.index_path = "./temp_index.faiss"
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.index_path = f"{self.tmpdir.name}/index.faiss"
         faiss.write_index(index, self.index_path)
 
     def _cleanup(self):
-        # Delete the faiss index
-        if os.path.exists("./temp_index.faiss"):
-            os.remove("./temp_index.faiss")
+        print("Exiting and cleaning up temporary data folder")
+        self.tmpdir.cleanup()  # clean up the temporary folder
 
     def _on_exit(self) -> None:
         self._cleanup()
+        return super()._on_exit()
+
+    def __repr__(self) -> str:
+        return f"index: faiss {self.index_parameters}"

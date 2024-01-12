@@ -199,7 +199,6 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         exist_ok: bool = True,
         skip_setup: bool = False,
         qdrant_body: Optional[dict[str, Any]] = None,
-        search_params: Optional[dict[str, Any]] = None,
         free_resources: bool = False,
         force_single_collection: bool = False,
     ) -> None:
@@ -216,8 +215,11 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         self._persistent = persistent
         self._exist_ok = exist_ok
         self._qdrant_body = qdrant_body
-        self._search_params = qdrm.SearchParams(**(search_params or {}))
         self._force_single_collection = force_single_collection
+
+        # unpack search parameters
+        assert isinstance(index_parameters.index_type, HNSW)
+        self._search_params = qdrm.SearchParams(hnsw_ef=index_parameters.index_type.ef_search)
 
     @property
     def supports_groups(self) -> bool:
@@ -314,6 +316,9 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
             _delete_except([self._index_name], client)
             while not self.get_client().ping():
                 time.sleep(0.05)
+
+    def __repr__(self) -> str:
+        return f"index: qdrant {self.index_parameters}"
 
 
 def _validate(
@@ -433,7 +438,7 @@ def _make_index_parameters(dim: int, index_parameters: IndexParameters):
             product=qdrm.ProductQuantizationConfig(compression=qdrm.CompressionRatio.X4)  # TODO figure this compression
         )
     else:
-        quantization_config = None  # TODO make sure this works as intended
+        quantization_config = None
 
     body = {}
     body["vectors_config"] = qdrm.VectorParams(
