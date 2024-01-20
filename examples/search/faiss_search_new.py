@@ -25,8 +25,8 @@ def all_index_param():
     index_types = [
         IVF(n_partition=10, n_probe=1),
         IVF(n_partition=100, n_probe=1),
-        HNSW(M=5, ef_construction=10, ef_search=5),
-        HNSW(M=10, ef_construction=10, ef_search=5),
+        # HNSW(M=5, ef_construction=10, ef_search=5),
+        # HNSW(M=10, ef_construction=10, ef_search=5),
     ]
     metrics = [
         "DOT",

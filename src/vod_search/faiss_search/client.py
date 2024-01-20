@@ -249,12 +249,6 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         self.index_path = f"{self.tmpdir.name}/index.faiss"
         faiss.write_index(index, self.index_path)
 
-        print(
-            "Done building faiss index, ef_ parameters are",
-            index.hnsw.efConstruction,
-            index.hnsw.efSearch,
-        )
-
     def _cleanup(self):
         print("Exiting and cleaning up temporary data folder")
         self.tmpdir.cleanup()  # clean up the temporary folder
