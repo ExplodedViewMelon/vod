@@ -110,12 +110,13 @@ class MilvusSearchClient(base.SearchClient):
         self,
         *,
         vector: Optional[ndarray],
+        top_k: int,
     ) -> vt.RetrievalBatch:
         if self.collection == None:
             print("No collection - getting from server")
             self._get_collection()
 
-        top_k: int = self.master.index_parameters.top_k
+        # top_k: int = self.master.index_parameters.top_k
         result: SearchResult = self.collection.search(vector.tolist(), "embeddings", param=self._make_search_params(), limit=top_k, _async=False)  # type: ignore
         return _search_batch_to_rdtypes(result, top_k)
 
@@ -203,7 +204,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
                     },
                 }
             elif isinstance(preprocessing, ScalarQuantization):
-                assert preprocessing.n == 8  # SQ8 is the only supported
+                assert preprocessing.n == 8, "SQ8 is the only supported"
                 return {
                     "index_type": "IVF_SQ8",
                     "metric_type": self.index_parameters.metric,
@@ -221,7 +222,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
                 }
 
         if isinstance(index_type, HNSW):
-            assert preprocessing == None  # Milvus does not support quantizers for hnsw.
+            assert preprocessing == None, "Milvus does not support quantizers for hnsw."
             return {
                 "index_type": "HNSW",
                 "metric_type": self.index_parameters.metric,
@@ -245,9 +246,11 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         collection = Collection("index_name", schema, consistency_level="Strong")
 
         for j in track(range(0, N, self.batch_size), description=f"Milvus: Ingesting {N} vectors of size {D}"):
+            to_insert = self.vectors[j : j + self.batch_size]
+            arbitrary_index = list(range(j, j + len(to_insert)))
             entities = [
-                list(range(j, j + self.batch_size)),
-                self.vectors[j : j + self.batch_size],
+                arbitrary_index,
+                to_insert,
             ]  # rewrite to type sequence
             collection.insert(entities)
 
@@ -258,4 +261,4 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         self.collection = collection
 
     def __repr__(self) -> str:
-        return f"index: qdrant {self.index_parameters}"
+        return f"index: milvus {self.index_parameters}"

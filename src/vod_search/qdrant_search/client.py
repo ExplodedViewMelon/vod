@@ -218,7 +218,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         self._force_single_collection = force_single_collection
 
         # unpack search parameters
-        assert isinstance(index_parameters.index_type, HNSW)
+        assert isinstance(index_parameters.index_type, HNSW), "Qdrant only supports HNSW"
         self._search_params = qdrm.SearchParams(hnsw_ef=index_parameters.index_type.ef_search)
 
     @property
@@ -417,7 +417,7 @@ class DisableIndexing:
 def _make_index_parameters(dim: int, index_parameters: IndexParameters):
     """param specification to be passed as arguements for build_index in master object"""
 
-    assert isinstance(index_parameters.index_type, HNSW)  # qdrant only supports HNSW
+    assert isinstance(index_parameters.index_type, HNSW), "qdrant only supports HNSW"
 
     distance_metric = qdrm.Distance.EUCLID  # map distance to qdrants notation (it's just capitalized words in the end)
     if index_parameters.metric == "L2":
@@ -430,8 +430,8 @@ def _make_index_parameters(dim: int, index_parameters: IndexParameters):
     if isinstance(index_parameters.preprocessing, ScalarQuantization):
         quantization_config = qdrm.ScalarQuantization(
             scalar=qdrm.ScalarQuantizationConfig(
-                type="int8", quantile=0.99  # type: ignore
-            )  # TODO figure these quantiles
+                type="int8", quantile=1  # type: ignore
+            )  # TODO set these quantiles.
         )
     elif isinstance(index_parameters.preprocessing, ProductQuantization):
         quantization_config = qdrm.ProductQuantization(

@@ -15,6 +15,7 @@ def build_faiss_index(
     factory_string: str,
     train_size: Optional[int] = None,
     faiss_metric: int = faiss.METRIC_INNER_PRODUCT,
+    ef_construction: int = 64,
     gpu_config: Optional[vod_configs.FaissGpuConfig] = None,
 ) -> faiss.Index:
     """Build an index from a factory string."""
@@ -45,6 +46,7 @@ def build_faiss_index(
         factory_string=factory_string,
         train_size=train_size,
         faiss_metric=faiss_metric,
+        ef_construction=ef_construction,
     )
 
 
@@ -58,10 +60,14 @@ def _build_faiss_index_on_cpu(
     factory_string: str,
     train_size: Optional[int] = None,
     faiss_metric: int = faiss.METRIC_INNER_PRODUCT,
+    ef_construction: int = 64,
 ) -> faiss.Index:
     vector_shape = vectors[0].shape
     vector_size = vector_shape[-1]
     index = faiss.index_factory(vector_size, factory_string, faiss_metric)
+    if factory_string[:4] == "HNSW":
+        print("Setting ef_construction to", ef_construction)
+        index.hnsw.efConstruction = ef_construction
 
     if train_size is None:
         train_size = len(vectors)
@@ -72,9 +78,9 @@ def _build_faiss_index_on_cpu(
     ):
         batch = vt.slice_arrays_sequence(vectors, slice(i, i + train_size))
         batch = np.asarray(batch).astype(np.float32)
-        if i == 0:
-            # logger.info(f"Training faiss index on `{len(batch)}` vectors " f"({len(batch) / len(vectors):.2%} (cpu)")
-            index.train(batch)  # type: ignore
+
+        # logger.info(f"Training faiss index on `{len(batch)}` vectors " f"({len(batch) / len(vectors):.2%} (cpu)")
+        index.train(batch)  # type: ignore
 
         # logger.info(f"Adding `{len(batch)}` vectors to the index ({len(batch) / len(vectors):.2%} (cpu)")
         index.add(batch)

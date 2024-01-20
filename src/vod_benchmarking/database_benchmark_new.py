@@ -1,4 +1,5 @@
 from __future__ import annotations
+import datetime
 from pathlib import Path
 from typing import Any
 import numpy as np
@@ -19,11 +20,17 @@ import tempfile
 
 """
 TODO
+FIGURE OUT WHY FAISS DOES NOT UPDATE THE EF_ PARAMETERS
+
+DONE - save the results in a document.
+DONE - make the three master objects behave equally. Edit the template / base object.
+add this to some computational setup
 add databases to benchmark loop.
-take care of parameter defaults in e.g. qdrant.
-save the results in a document.
-generate plots with distributions etc.
-implement filtering and categories/subsets.
+save all timers, plot histograms
+implement filtering, categories, subsets etc.
+a never ending task -> double check and polish the parameter specification. etc.
+
+start writing theory for the report.
 """
 
 
@@ -77,25 +84,7 @@ class Timer:
 from vod_search.models import *
 
 
-def all_index_param():
-    preprocessings = [
-        None,
-        ProductQuantization(m=4),
-        ProductQuantization(m=8),
-        ScalarQuantization(n=4),
-        ScalarQuantization(n=8),
-    ]
-    index_types = [
-        IVF(n_partition=5, n_probe=1),  # NOTE dim must be divisible with n_partition
-        IVF(n_partition=13, n_probe=1),
-        HNSW(M=5, ef_construction=10, ef_search=5),
-        HNSW(M=13, ef_construction=10, ef_search=5),
-    ]
-    metrics = [
-        "DOT",
-        "L2",
-    ]
-
+def _create_index_param(preprocessings, index_types, metrics):
     _all_index_param = []
 
     for preprocessing in preprocessings:
@@ -135,13 +124,43 @@ print(
     query_vectors.shape,
 )
 
+BENCHMARK_RUN_NAME = "Faiss_HNSW_ef_test"
+
 _SearchMasters = [
+    # milvus_search.MilvusSearchMaster,
     faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
-    milvus_search.MilvusSearchMaster,
+    # qdrant_search.QdrantSearchMaster,
 ]
 
-index_specifications = all_index_param()
+preprocessings = [
+    None,  # Remember this one!
+    # ProductQuantization(m=5),  # must be divisible with n_dimensions
+    # ProductQuantization(m=4),
+    # ProductQuantization(m=8),
+    # ScalarQuantization(n=8),
+    # ScalarQuantization(n=8),
+]
+
+ef_parameter = 3  # like they recommended in the paper
+index_types = [
+    # IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
+    # IVF(n_partition=1000, n_probe=50),
+    # IVF(n_partition=2000, n_probe=50),
+    # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
+    HNSW(M=32, ef_construction=2, ef_search=16),
+    HNSW(M=32, ef_construction=32, ef_search=16),
+    HNSW(M=32, ef_construction=128, ef_search=16),
+    HNSW(M=32, ef_construction=2, ef_search=64),
+    HNSW(M=32, ef_construction=32, ef_search=64),
+    HNSW(M=32, ef_construction=128, ef_search=64),
+    # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
+    # NSW(M=13, ef_construction=10, ef_search=5),
+]
+metrics = [
+    # "DOT",
+    "L2",
+]
+index_specifications = _create_index_param(preprocessings, index_types, metrics)
 
 # timers
 benchmarkTimer = Timer()
@@ -151,16 +170,17 @@ searchTimer = Timer()
 benchmark_results = []
 
 n_benchmarks = len(_SearchMasters) * len(index_specifications)
-print(f"Running {n_benchmarks} benchmarks.")
+print(f"Running {n_benchmarks} benchmarks in total.")
 n = 0
 
 benchmarkTimer.begin()
 for _SearchMaster in _SearchMasters:
     for index_specification in index_specifications:
         n += 1
-        if np.random.random() > 5 / 60:  # should run for a minute then
-            continue  # sample the benchmark
+        # if np.random.random() > 5 / 60:  # should run for a minute then
+        #     continue  # sample the benchmark
         print(f"Running {n} out of {n_benchmarks} benchmarks")
+        master = None
         try:
             sleep(5)  # wait for server to terminate before creating new
             print("Spinning up server...")
@@ -215,8 +235,8 @@ for _SearchMaster in _SearchMasters:
             print("Benchmark went wrong.", e)
             benchmark_results.append(
                 {
-                    "Index": -1,
-                    "Index parameters.": -1,
+                    "Index": master.__repr__() if master else "None",
+                    "Index parameters.": f"error: {e}",
                     "Build speed (s)": -1,
                     "Search speed avg. (ms)": -1,
                     "Search speed p95 (ms)": -1,
@@ -232,4 +252,10 @@ for _SearchMaster in _SearchMasters:
 benchmarkTimer.end()
 
 print("Total time elapsed during bechmarking:", benchmarkTimer)
-print(pd.DataFrame(benchmark_results))
+df_results = pd.DataFrame(benchmark_results)
+print(df_results)
+
+timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+path = "/Users/oas/Documents/VOD/vod/benchmarking_results"
+output_file = f"{path}/{BENCHMARK_RUN_NAME}_{timestamp}.csv"
+df_results.to_csv(output_file)

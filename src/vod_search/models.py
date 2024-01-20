@@ -56,8 +56,6 @@ class IVF:
     n_probe: int  # search
 
     def __init__(self, *, n_partition, n_probe) -> None:
-        assert n_partition > 0
-        assert n_probe > 0
         self.n_partition = n_partition
         self.n_probe = n_probe
 
@@ -69,13 +67,14 @@ class IndexParameters(abc.ABC):
     preprocessing: None | ProductQuantization | ScalarQuantization
     index_type: IVF | HNSW
     metric: str
-    top_k: int
 
     def __init__(self, *, preprocessing, index_type, metric, top_k) -> None:
         self.preprocessing = preprocessing
         self.index_type = index_type
         self.metric = metric
-        self.top_k = top_k
+
+        if isinstance(self.preprocessing, ProductQuantization):
+            assert isinstance(self.index_type, IVF), "HSNW does not support ProductQuantization"
 
     def __repr__(self) -> str:
-        return f"{self.index_type}, {self.preprocessing}, {self.metric}, {self.top_k}"
+        return f"{self.index_type}, {self.preprocessing}, {self.metric}"

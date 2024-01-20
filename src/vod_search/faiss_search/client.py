@@ -230,12 +230,30 @@ class FaissMaster(base.SearchMaster[FaissClient]):
 
     def _build_index(self) -> None:
         factory_string = self._get_factory_string()
+        # index = faiss.index_factory(self.vectors.shape[-1], factory_string)
 
-        index = faiss_search.build_faiss_index(vectors=self.vectors, factory_string=factory_string)
+        # index.add(self.vectors)
+
+        index = faiss_search.build_faiss_index(  # valentin's code
+            vectors=self.vectors,
+            factory_string=factory_string,
+            ef_construction=self.index_parameters.index_type.ef_construction
+            if isinstance(self.index_parameters.index_type, HNSW)
+            else -1,
+        )
+
+        if isinstance(self.index_parameters.index_type, HNSW):
+            index.hnsw.efSearch = self.index_parameters.index_type.ef_search  # type: ignore
 
         self.tmpdir = tempfile.TemporaryDirectory()
         self.index_path = f"{self.tmpdir.name}/index.faiss"
         faiss.write_index(index, self.index_path)
+
+        print(
+            "Done building faiss index, ef_ parameters are",
+            index.hnsw.efConstruction,
+            index.hnsw.efSearch,
+        )
 
     def _cleanup(self):
         print("Exiting and cleaning up temporary data folder")
