@@ -127,9 +127,9 @@ print(
 BENCHMARK_RUN_NAME = "Faiss_HNSW_ef_test"
 
 _SearchMasters = [
-    # milvus_search.MilvusSearchMaster,
+    milvus_search.MilvusSearchMaster,
     faiss_search.FaissMaster,
-    # qdrant_search.QdrantSearchMaster,
+    qdrant_search.QdrantSearchMaster,
 ]
 
 preprocessings = [
@@ -143,16 +143,16 @@ preprocessings = [
 
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
-    # IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
+    IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
     # IVF(n_partition=1000, n_probe=50),
     # IVF(n_partition=2000, n_probe=50),
     # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
-    HNSW(M=32, ef_construction=2, ef_search=16),
+    # HNSW(M=32, ef_construction=2, ef_search=16),
     HNSW(M=32, ef_construction=32, ef_search=16),
-    HNSW(M=32, ef_construction=128, ef_search=16),
-    HNSW(M=32, ef_construction=2, ef_search=64),
-    HNSW(M=32, ef_construction=32, ef_search=64),
-    HNSW(M=32, ef_construction=128, ef_search=64),
+    # HNSW(M=32, ef_construction=128, ef_search=16),
+    # HNSW(M=32, ef_construction=2, ef_search=64),
+    # HNSW(M=32, ef_construction=32, ef_search=64),
+    # HNSW(M=32, ef_construction=128, ef_search=64),
     # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
     # NSW(M=13, ef_construction=10, ef_search=5),
 ]

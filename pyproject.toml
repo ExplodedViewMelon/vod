@@ -83,6 +83,9 @@ gpustat = "^1.1.1"
 tenacity = "^8.2.3"
 h5py = "^3.0.0"
 
+pymilvus # newly added
+sklearn
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
 pre-commit = "^3.0.4"
