@@ -38,15 +38,14 @@ class DockerStatsLogger:
     def __enter__(self):
         print("Starting docker logging")
         # Define the bash script
-        # script = f"while true; do docker stats --no-stream | cat >> ./{self.filename}; sleep 1; done"
+        # script = f"while true; do docker stats --no-stream | cat >> ./{self.filename}; sleep 0.1; done"
         script = f"""
         while true; do 
             docker stats --no-stream | while read line; do
                 echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> ./{self.filename}
             done
-            sleep 1
+            sleep 0.1
         done
-
         """
 
         # Start the script in a background thread

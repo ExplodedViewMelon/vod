@@ -144,7 +144,8 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
     """A class that manages a search server."""
 
     _timeout: float = 30 * 60  # extended timeout to allow for downloading milvus docker image
-    _allow_existing_server: bool = True
+    # _allow_existing_server: bool = True
+    _allow_existing_server: bool = False  # NOTE only disabled because of benchmarking
 
     def __init__(
         self,

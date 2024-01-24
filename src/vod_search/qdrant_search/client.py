@@ -183,7 +183,8 @@ class IndexValidationStatus:
 class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
     """A class that manages a search server."""
 
-    _allow_existing_server: bool = True
+    # _allow_existing_server: bool = True
+    _allow_existing_server: bool = False  # NOTE only disabled because of benchmarking
 
     def __init__(  # noqa: PLR0913
         self,
@@ -429,9 +430,7 @@ def _make_index_parameters(dim: int, index_parameters: IndexParameters):
 
     if isinstance(index_parameters.preprocessing, ScalarQuantization):
         quantization_config = qdrm.ScalarQuantization(
-            scalar=qdrm.ScalarQuantizationConfig(
-                type="int8", quantile=1  # type: ignore
-            )  # TODO set these quantiles.
+            scalar=qdrm.ScalarQuantizationConfig(type="int8", quantile=1)  # type: ignore  # TODO set these quantiles.
         )
     elif isinstance(index_parameters.preprocessing, ProductQuantization):
         quantization_config = qdrm.ProductQuantization(

@@ -19,6 +19,7 @@ import tempfile
 import os
 from vod_search.models import *  # TODO import each thing instead of wildcard.
 from vod_benchmarking import DockerStatsLogger
+from datetime import datetime
 
 
 """
@@ -42,32 +43,32 @@ start writing theory for the report.
 BENCHMARK_RUN_NAME = "QdrantLoggerTest"
 
 _SearchMasters = [
-    # milvus_search.MilvusSearchMaster,
+    milvus_search.MilvusSearchMaster,
     # faiss_search.FaissMaster,
     qdrant_search.QdrantSearchMaster,
 ]
 
 preprocessings = [
-    None,  # Remember this one!
+    # None,  # Remember this one!
     # ProductQuantization(m=5),  # must be divisible with n_dimensions
     # ProductQuantization(m=4),
     # ProductQuantization(m=8),
-    # ScalarQuantization(n=8),
+    ScalarQuantization(n=8),
     # ScalarQuantization(n=8),
 ]
 
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
-    # IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
-    # IVF(n_partition=1000, n_probe=50),
+    IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
+    IVF(n_partition=1000, n_probe=50),
     # IVF(n_partition=2000, n_probe=50),
     # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
     # HNSW(M=32, ef_construction=2, ef_search=16),
     HNSW(M=32, ef_construction=32, ef_search=16),
-    HNSW(M=32, ef_construction=128, ef_search=16),
-    HNSW(M=32, ef_construction=2, ef_search=64),
-    HNSW(M=32, ef_construction=32, ef_search=64),
-    HNSW(M=32, ef_construction=128, ef_search=64),
+    # HNSW(M=32, ef_construction=64, ef_search=64),
+    HNSW(M=64, ef_construction=64, ef_search=64),
+    # HNSW(M=64, ef_construction=256, ef_search=64),
+    # HNSW(M=128, ef_construction=256, ef_search=128),
     # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
     # NSW(M=13, ef_construction=10, ef_search=5),
 ]
@@ -177,6 +178,8 @@ n_benchmarks = len(_SearchMasters) * len(index_specifications)
 print(f"Running {n_benchmarks} benchmarks in total.")
 n = 0
 
+timestamps = []
+
 benchmarkTimer.begin()
 for _SearchMaster in _SearchMasters:
     for index_specification in index_specifications:
@@ -190,8 +193,12 @@ for _SearchMaster in _SearchMasters:
             print("Spinning up server...")
             with DockerStatsLogger(filename=f"DOCKER_STATS_LOG_{BENCHMARK_RUN_NAME}.csv") as docker_logger:
                 masterTimer.begin()  # time server startup and build
+                timestamps.append(("BeginServer", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 with _SearchMaster(vectors=index_vectors, index_parameters=index_specification) as master:
+                    timestamps.append(("DoneIngesting", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                    sleep(20)  # wait for server to settle after ingesting vectors
                     print(f"Benchmarking {master}")
+                    timestamps.append(("BeginBenchmarking", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
                     client = master.get_client()
                     masterTimer.end()
@@ -204,22 +211,27 @@ for _SearchMaster in _SearchMasters:
                     for trial in track(range(n_warmup), description=f"Warming up"):
                         results = client.search(vector=query_vectors[trial], top_k=top_k)
 
-                    for trial in track(range(n_trials), description=f"Benchmarking"):
-                        # get search results
-                        searchTimer.begin()
-                        results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
-                        searchTimer.end()
-                        pred_indices = results.indices
+                    for _ in range(3):
+                        sleep(5)
+                        for trial in track(range(n_trials), description=f"Benchmarking"):
+                            # get search results
+                            searchTimer.begin()
+                            results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
+                            searchTimer.end()
+                            pred_indices = results.indices
 
-                        # get true results
-                        true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
+                            # get true results
+                            true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
 
-                        # save trial results
-                        recalls.append(recall_batch(pred_indices, true_indices))
-                        recalls_at_1.append(recall_at_k(pred_indices, true_indices, 1))
-                        recalls_at_10.append(recall_at_k(pred_indices, true_indices, 10))
-                        recalls_at_100.append(recall_at_k(pred_indices, true_indices, 100))
+                            # save trial results
+                            recalls.append(recall_batch(pred_indices, true_indices))
+                            recalls_at_1.append(recall_at_k(pred_indices, true_indices, 1))
+                            recalls_at_10.append(recall_at_k(pred_indices, true_indices, 10))
+                            recalls_at_100.append(recall_at_k(pred_indices, true_indices, 100))
 
+                    timestamps.append(("DoneBenchmarking", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                    sleep(20)
+                    timestamps.append(("DoneServer", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                     benchmark_results.append(
                         {
                             "Index": master.__repr__(),
@@ -258,9 +270,11 @@ print("Total time elapsed during bechmarking:", benchmarkTimer)
 df_results = pd.DataFrame(benchmark_results)
 print(df_results)
 
-timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 current_path = os.getcwd()
 
 output_file = f"{current_path}/benchmarking_results/{BENCHMARK_RUN_NAME}_{timestamp}.csv"
 print("saving results to", output_file)
 df_results.to_csv(output_file)
+
+print(timestamps)
