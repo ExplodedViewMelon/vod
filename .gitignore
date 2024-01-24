@@ -152,6 +152,7 @@ dmypy.json
 volumes/
 
 data_benchmark/
+benchmarking_results/
 
 mutagen.yml
 mutagen.yml.lock

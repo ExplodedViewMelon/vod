@@ -107,6 +107,7 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
 
     def _setup(self) -> None:
         self._server_proc = self._start_server()
+        # NOTE add delay here and save the timestamp for referencing?
         self._on_init()
 
     def __exit__(self, exc_type: typ.Any, exc_val: typ.Any, exc_tb: typ.Any) -> None:  # noqa: ANN401

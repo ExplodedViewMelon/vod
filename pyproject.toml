@@ -106,7 +106,7 @@ testpaths = "src/"
 [tool.black]
 line-length = 120
 exclude = '''
-(
+( 
   /(
       \.git
     | \.pyx

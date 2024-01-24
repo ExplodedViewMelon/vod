@@ -16,6 +16,9 @@ from vod_benchmarking import DatasetGlove, DatasetLastFM, DatasetSift1M
 import pydantic
 import abc
 import tempfile
+import os
+from vod_search.models import *  # TODO import each thing instead of wildcard.
+from vod_benchmarking import DockerStatsLogger
 
 
 """
@@ -32,6 +35,46 @@ a never ending task -> double check and polish the parameter specification. etc.
 
 start writing theory for the report.
 """
+
+# most important hyper parameters:
+
+
+BENCHMARK_RUN_NAME = "QdrantLoggerTest"
+
+_SearchMasters = [
+    # milvus_search.MilvusSearchMaster,
+    # faiss_search.FaissMaster,
+    qdrant_search.QdrantSearchMaster,
+]
+
+preprocessings = [
+    None,  # Remember this one!
+    # ProductQuantization(m=5),  # must be divisible with n_dimensions
+    # ProductQuantization(m=4),
+    # ProductQuantization(m=8),
+    # ScalarQuantization(n=8),
+    # ScalarQuantization(n=8),
+]
+
+ef_parameter = 3  # like they recommended in the paper
+index_types = [
+    # IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
+    # IVF(n_partition=1000, n_probe=50),
+    # IVF(n_partition=2000, n_probe=50),
+    # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
+    # HNSW(M=32, ef_construction=2, ef_search=16),
+    HNSW(M=32, ef_construction=32, ef_search=16),
+    HNSW(M=32, ef_construction=128, ef_search=16),
+    HNSW(M=32, ef_construction=2, ef_search=64),
+    HNSW(M=32, ef_construction=32, ef_search=64),
+    HNSW(M=32, ef_construction=128, ef_search=64),
+    # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
+    # NSW(M=13, ef_construction=10, ef_search=5),
+]
+metrics = [
+    # "DOT",
+    "L2",
+]
 
 
 def get_ground_truth(vectors: np.ndarray, query: np.ndarray, top_k: int) -> np.ndarray:
@@ -81,9 +124,6 @@ class Timer:
         return f"{self.mean}s"
 
 
-from vod_search.models import *
-
-
 def _create_index_param(preprocessings, index_types, metrics):
     _all_index_param = []
 
@@ -124,42 +164,6 @@ print(
     query_vectors.shape,
 )
 
-BENCHMARK_RUN_NAME = "Faiss_HNSW_ef_test"
-
-_SearchMasters = [
-    milvus_search.MilvusSearchMaster,
-    faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
-]
-
-preprocessings = [
-    None,  # Remember this one!
-    # ProductQuantization(m=5),  # must be divisible with n_dimensions
-    # ProductQuantization(m=4),
-    # ProductQuantization(m=8),
-    # ScalarQuantization(n=8),
-    # ScalarQuantization(n=8),
-]
-
-ef_parameter = 3  # like they recommended in the paper
-index_types = [
-    IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
-    # IVF(n_partition=1000, n_probe=50),
-    # IVF(n_partition=2000, n_probe=50),
-    # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
-    # HNSW(M=32, ef_construction=2, ef_search=16),
-    HNSW(M=32, ef_construction=32, ef_search=16),
-    # HNSW(M=32, ef_construction=128, ef_search=16),
-    # HNSW(M=32, ef_construction=2, ef_search=64),
-    # HNSW(M=32, ef_construction=32, ef_search=64),
-    # HNSW(M=32, ef_construction=128, ef_search=64),
-    # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
-    # NSW(M=13, ef_construction=10, ef_search=5),
-]
-metrics = [
-    # "DOT",
-    "L2",
-]
 index_specifications = _create_index_param(preprocessings, index_types, metrics)
 
 # timers
@@ -184,53 +188,52 @@ for _SearchMaster in _SearchMasters:
         try:
             sleep(5)  # wait for server to terminate before creating new
             print("Spinning up server...")
-            used_memory_before = psutil.virtual_memory().used
-            masterTimer.begin()  # time server startup and build
-            with _SearchMaster(vectors=index_vectors, index_parameters=index_specification) as master:
-                print(f"Benchmarking {master}")
+            with DockerStatsLogger(filename=f"DOCKER_STATS_LOG_{BENCHMARK_RUN_NAME}.csv") as docker_logger:
+                masterTimer.begin()  # time server startup and build
+                with _SearchMaster(vectors=index_vectors, index_parameters=index_specification) as master:
+                    print(f"Benchmarking {master}")
 
-                client = master.get_client()
-                masterTimer.end()
-                used_memory_after = psutil.virtual_memory().used
+                    client = master.get_client()
+                    masterTimer.end()
 
-                recalls = []
-                recalls_at_1 = []
-                recalls_at_10 = []
-                recalls_at_100 = []
+                    recalls = []
+                    recalls_at_1 = []
+                    recalls_at_10 = []
+                    recalls_at_100 = []
 
-                for trial in track(range(n_warmup), description=f"Warming up"):
-                    results = client.search(vector=query_vectors[trial], top_k=top_k)
+                    for trial in track(range(n_warmup), description=f"Warming up"):
+                        results = client.search(vector=query_vectors[trial], top_k=top_k)
 
-                for trial in track(range(n_trials), description=f"Benchmarking"):
-                    # get search results
-                    searchTimer.begin()
-                    results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
-                    searchTimer.end()
-                    pred_indices = results.indices
+                    for trial in track(range(n_trials), description=f"Benchmarking"):
+                        # get search results
+                        searchTimer.begin()
+                        results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
+                        searchTimer.end()
+                        pred_indices = results.indices
 
-                    # get true results
-                    true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
+                        # get true results
+                        true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
 
-                    # save trial results
-                    recalls.append(recall_batch(pred_indices, true_indices))
-                    recalls_at_1.append(recall_at_k(pred_indices, true_indices, 1))
-                    recalls_at_10.append(recall_at_k(pred_indices, true_indices, 10))
-                    recalls_at_100.append(recall_at_k(pred_indices, true_indices, 100))
+                        # save trial results
+                        recalls.append(recall_batch(pred_indices, true_indices))
+                        recalls_at_1.append(recall_at_k(pred_indices, true_indices, 1))
+                        recalls_at_10.append(recall_at_k(pred_indices, true_indices, 10))
+                        recalls_at_100.append(recall_at_k(pred_indices, true_indices, 100))
 
-                benchmark_results.append(
-                    {
-                        "Index": master.__repr__(),
-                        "Index parameters.": f"{index_specification}",
-                        "Build speed (s)": masterTimer.mean,
-                        "Search speed avg. (ms)": searchTimer.mean * 1000,
-                        "Search speed p95 (ms)": searchTimer.pk_latency(95) * 1000,
-                        "Recall avg": np.mean(recalls),
-                        "Recall@1": np.mean(recalls_at_1),
-                        "Recall@10": np.mean(recalls_at_10),
-                        "Recall@100": np.mean(recalls_at_100),
-                        "Est. memory usage (GB)": (used_memory_after - used_memory_before) / (1024**3),
-                    }
-                )
+                    benchmark_results.append(
+                        {
+                            "Index": master.__repr__(),
+                            "Index parameters.": f"{index_specification}",
+                            "Build speed (s)": masterTimer.mean,
+                            "Search speed avg. (ms)": searchTimer.mean * 1000,
+                            "Search speed p95 (ms)": searchTimer.pk_latency(95) * 1000,
+                            "Recall avg": np.mean(recalls),
+                            "Recall@1": np.mean(recalls_at_1),
+                            "Recall@10": np.mean(recalls_at_10),
+                            "Recall@100": np.mean(recalls_at_100),
+                            "Est. memory usage (GB)": 0,
+                        }
+                    )
         except Exception as e:
             print("Benchmark went wrong.", e)
             benchmark_results.append(
@@ -256,6 +259,8 @@ df_results = pd.DataFrame(benchmark_results)
 print(df_results)
 
 timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-path = "/Users/oas/Documents/VOD/vod/benchmarking_results"
-output_file = f"{path}/{BENCHMARK_RUN_NAME}_{timestamp}.csv"
+current_path = os.getcwd()
+
+output_file = f"{current_path}/benchmarking_results/{BENCHMARK_RUN_NAME}_{timestamp}.csv"
+print("saving results to", output_file)
 df_results.to_csv(output_file)
