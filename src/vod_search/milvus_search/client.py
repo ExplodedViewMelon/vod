@@ -1,4 +1,5 @@
 from __future__ import annotations
+import subprocess
 from typing import Any, Optional
 
 import json
@@ -162,6 +163,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         self.batch_size = 1000
 
         skip_setup = False
+        self.force_quit_docker()
         super().__init__(skip_setup)
 
     def _on_init(self) -> None:
@@ -172,6 +174,14 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
 
     def _on_exit(self) -> None:
         utility.drop_collection("index_name")
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        super().__exit__(exc_type, exc_val, exc_tb)
+        # super().__exit__ tries to terminate the subprocess, but fails.
+        self.force_quit_docker()
+
+    def force_quit_docker(self):
+        subprocess.run(["docker-compose", "down"], env=self._make_env())
 
     def get_client(self) -> MilvusSearchClient:
         return MilvusSearchClient(host=self.host, port=self.port, master=self, collection=self.collection)

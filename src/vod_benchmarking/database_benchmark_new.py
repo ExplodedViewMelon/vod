@@ -1,6 +1,7 @@
 from __future__ import annotations
 import datetime
 from pathlib import Path
+import traceback
 from typing import Any
 import numpy as np
 from numpy import ndarray
@@ -36,12 +37,10 @@ start writing theory for the report.
 # most important hyper parameters:
 
 
-BENCHMARK_RUN_NAME = "QdrantLoggerTest"
-
 _SearchMasters = [
     milvus_search.MilvusSearchMaster,
     # faiss_search.FaissMaster,
-    # qdrant_search.QdrantSearchMaster,
+    qdrant_search.QdrantSearchMaster,
 ]
 
 preprocessings = [
@@ -56,7 +55,7 @@ preprocessings = [
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
     # IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
-    IVF(n_partition=1000, n_probe=50),
+    # IVF(n_partition=1000, n_probe=50),
     # IVF(n_partition=2000, n_probe=50),
     # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
     # HNSW(M=32, ef_construction=2, ef_search=16),
@@ -64,7 +63,7 @@ index_types = [
     # HNSW(M=32, ef_construction=64, ef_search=64),
     # HNSW(M=64, ef_construction=64, ef_search=64),
     # HNSW(M=64, ef_construction=256, ef_search=64),
-    # HNSW(M=128, ef_construction=256, ef_search=128),
+    HNSW(M=64, ef_construction=256, ef_search=128),
     # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
     # NSW(M=13, ef_construction=10, ef_search=5),
 ]
@@ -173,22 +172,25 @@ benchmark_results = []
 n_benchmarks = len(_SearchMasters) * len(index_specifications)
 print(f"Running {n_benchmarks} benchmarks in total.")
 n = 0
+dockerMemoryLogger = None
 
 timestamps = []
-
+tb = ""
 benchmarkTimer.begin()
 for _SearchMaster in _SearchMasters:
     for index_specification in index_specifications:
         n += 1
         # if np.random.random() > 5 / 60:  # should run for a minute then
         #     continue  # sample the benchmark
-        print(f"Running {n} out of {n_benchmarks} benchmarks")
+        run_id = str(np.random.random())[2:8]
+        run_title = f"{_SearchMaster} {index_specification}. ID: {run_id}"
+        print(f"Running {n} out of {n_benchmarks} benchmarks. Title: {run_title}")
         master = None
         try:
             sleep(5)  # wait for server to terminate before creating new
             print("Spinning up server...")
 
-            dockerMemoryLogger = DockerMemoryLogger(filename="./docker_memory_logs.csv")
+            dockerMemoryLogger = DockerMemoryLogger(title=run_id)
             masterTimer.begin()  # time server startup and build
             timestamps.append(("BeginServer", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             dockerMemoryLogger.set_begin_ingesting()
@@ -228,8 +230,14 @@ for _SearchMaster in _SearchMasters:
                 dockerMemoryLogger.set_done_benchmarking()
                 dockerMemoryLogger.stop_logging()
 
-                memory_statistics: dict[str, float] = dockerMemoryLogger.get_statistics()
-                dockerMemoryLogger.make_plots()
+                memory_statistics: dict[
+                    str, float
+                ] = dockerMemoryLogger.get_statistics()  # TODO make sure that all other docker containers are stopped
+
+                try:
+                    dockerMemoryLogger.make_plots()
+                except Exception as pe:
+                    print("Making plots went wrong.", pe)
 
                 benchmark_results.append(
                     {
@@ -245,12 +253,16 @@ for _SearchMaster in _SearchMasters:
                         **memory_statistics,
                     }
                 )
-        except Exception as e:
-            print("Benchmark went wrong.", e)
+        except Exception:
+            print("Benchmark went wrong.")
+            tb = traceback.format_exc()
+            print(tb)
+            if dockerMemoryLogger:
+                dockerMemoryLogger.stop_logging()
             benchmark_results.append(
                 {
                     "Index": master.__repr__() if master else "None",
-                    "Index parameters.": f"error: {e}",
+                    "Index parameters.": f"error: {tb}",
                     "Build speed (s)": -1,
                     "Search speed avg. (ms)": -1,
                     "Search speed p95 (ms)": -1,
@@ -275,7 +287,7 @@ print(df_results)
 timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 current_path = os.getcwd()
 
-output_file = f"{current_path}/benchmarking_results/{BENCHMARK_RUN_NAME}_{timestamp}.csv"
+output_file = f"{current_path}/benchmarking_results/{timestamp}.csv"
 print("saving results to", output_file)
 df_results.to_csv(output_file)
 

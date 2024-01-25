@@ -6,69 +6,51 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import subprocess
 import threading
-
-# implement function for making plots
-# implement temporary folder for logs
-
-
-class DockerStatsLoggerOld:
-    def __init__(self, filename: str) -> None:
-        self.filename = filename
-
-    def __enter__(self):
-        print("Starting docker logging")
-        # Define the bash script
-        # script = f"while true; do docker stats --no-stream | cat >> ./{self.filename}; sleep 0.1; done"
-        script = f"""
-        while true; do 
-            docker stats --no-stream | while read line; do
-                echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> ./{self.filename}
-            done
-            sleep 0.5
-        done
-        """
-
-        # Start the script in a background thread
-        self.thread = threading.Thread(target=self.run_script, args=(script,))
-        self.thread.start()
-        return self
-
-    def run_script(self, script):
-        # Run the script
-        self.process = subprocess.Popen(["bash", "-c", script])
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        print("Ending docker logging")
-        # Terminate the script when exiting the context
-        self.process.terminate()
-        self.thread.join()
+import warnings
+import os
+import warnings
 
 
-# if __name__ == "__main__":
-#     # Example usage
-#     with DockerStatsLogger(filename="test_w_timestamp") as logger:
-#         sleep(10)
+# DONE implement function for making plots
+pd.options.mode.chained_assignment = None  # default='warn'
 
 
 class DockerMemoryLogger:
-    def __init__(self, filename: str, overwrite_logs: bool = True):
-        self.filename = filename
+    def __init__(
+        self, title: str, *, folder_path: str = "./docker_memory_logs/", overwrite_logs: bool = True, timeout=600
+    ):
+        self.folder_path: str = folder_path
+        self.title: str = title
         self.begin_ingesting: str = "-1"
         self.done_ingesting: str = "-1"
         self.begin_benchmarking: str = "-1"
         self.done_benchmarking: str = "-1"
+        self.timeout = timeout
+
+        # Create folder if it does not exist
+        os.makedirs(self.folder_path, exist_ok=True)
+
         self.start_logging()
         if overwrite_logs:
-            with open(self.filename, "w") as file:  # make file or overwrite
+            with open(f"{self.folder_path}{self.title}.csv", "w") as file:  # make file or overwrite
                 pass
 
     def start_logging(self):
         print("starting docker logging")
         # start script
         script = f"""
+        start_time=$(date +%s)
+        end_time=$((start_time + {self.timeout}))   
+        
         while true; do 
+
+            current_time=$(date +%s)
+            if [ $current_time -ge $end_time ]; then
+                break
+            fi
+        
             docker stats --no-stream | while read line; do
-                echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> ./{self.filename}
+                echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> {self.folder_path}{self.title}.csv
             done
             sleep 0.1
         done
@@ -79,10 +61,14 @@ class DockerMemoryLogger:
         sleep(1)
 
     def stop_logging(self):
-        print("stopping docker logging")
-        # Terminate the script when exiting the context
-        self.process.terminate()
-        self.thread.join()
+        print("stopping docker logging...")
+        n_tries = 5
+        while self.process.poll() is None and n_tries > 0:
+            # Terminate the script when exiting the context
+            self.process.terminate()
+            self.thread.join()
+            n_tries -= 1
+            sleep(0.5)
 
     def get_current_datetime(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -131,7 +117,7 @@ class DockerMemoryLogger:
             if timestamp != "-1"
         ]
         timestamps = pd.to_datetime(timestamps_raw)
-        labels = ["begin_ingesting", "done_ingesting", "begin_benchmarking", "done_benchmarking"]
+        labels = ["begin_server", "done_ingesting", "begin_benchmarking", "done_server"]
 
         plt.vlines(timestamps, 0, df.MEMORY_USAGE_MB.max())
         for label, timestamp in zip(labels, timestamps):
@@ -143,10 +129,10 @@ class DockerMemoryLogger:
                 verticalalignment="bottom",
                 c="darkblue",
             )
-        plt.savefig("./figure_memory_logs.png")
+        plt.savefig(f"{self.folder_path}{self.title}.png")
 
     def get_data(self):
-        df = pd.read_csv(f"/Users/oas/Documents/VOD/vod/{self.filename}", delimiter=r"\s\s+", engine="python")
+        df = pd.read_csv(f"{self.folder_path}{self.title}.csv", delimiter=r"\s\s+", engine="python")
         df = df.query("NAME != 'NAME'")  # remove headers
         columns = df.columns.tolist()  # change name of timestamp
         columns[0] = "TIMESTAMP"
@@ -169,25 +155,28 @@ class DockerMemoryLogger:
 
     def get_statistics(self) -> dict[str, float]:
         df = self.get_data()
+        # get cummulative of each process, if multiple
+        df = df.groupby("TIMESTAMP").sum()
 
         df_ingesting = df.query(
-            f"TIMESTAMP > {self.begin_ingesting} and TIMESTAMP < {self.done_ingesting}"
+            f"TIMESTAMP > '{self.begin_ingesting}' and TIMESTAMP < '{self.done_ingesting}'"
         ).MEMORY_USAGE_MB
         df_benchmarking = df.query(
-            f"TIMESTAMP > {self.begin_benchmarking} and TIMESTAMP < {self.done_benchmarking}"
+            f"TIMESTAMP > '{self.begin_benchmarking}' and TIMESTAMP < '{self.done_benchmarking}'"
         ).MEMORY_USAGE_MB
 
         # get either milvus or qdrant here. or faiss.
 
         return {
-            "ingesting_max": df_ingesting.MEMORY_USAGE_MB.max(),
-            "ingesting_mean": df_ingesting.MEMORY_USAGE_MB.mean(),
-            "benchmarking_max": df_benchmarking.MEMORY_USAGE_MB.max(),
-            "benchmarking_mean": df_benchmarking.MEMORY_USAGE_MB.mean(),
+            "ingesting_max": df_ingesting.max(),
+            "ingesting_mean": df_ingesting.mean(),
+            "benchmarking_max": df_benchmarking.max(),
+            "benchmarking_mean": df_benchmarking.mean(),
         }
 
 
 if __name__ == "__main__":
-    dm = DockerMemoryLogger("docker_memory_logs.csv", overwrite_logs=False)
+    dm = DockerMemoryLogger(title="wet_run_test", overwrite_logs=False)
+    dm.set_begin_benchmarking()
     dm.stop_logging()
     dm.make_plots()
