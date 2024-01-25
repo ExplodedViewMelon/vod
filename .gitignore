@@ -147,6 +147,9 @@ dmypy.json
 
 *.npy
 
+*.csv
+docker_memory_logs.csv
+
 # docker volumes
 
 volumes/
