@@ -39,7 +39,7 @@ start writing theory for the report.
 
 _SearchMasters = [
     milvus_search.MilvusSearchMaster,
-    # faiss_search.FaissMaster,
+    faiss_search.FaissMaster,
     qdrant_search.QdrantSearchMaster,
 ]
 
@@ -48,15 +48,15 @@ preprocessings = [
     # ProductQuantization(m=5),  # must be divisible with n_dimensions
     # ProductQuantization(m=4),
     # ProductQuantization(m=8),
-    # ScalarQuantization(n=8),
+    ScalarQuantization(n=8),
     # ScalarQuantization(n=8),
 ]
 
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
-    # IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
-    # IVF(n_partition=1000, n_probe=50),
-    # IVF(n_partition=2000, n_probe=50),
+    IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
+    IVF(n_partition=1000, n_probe=50),
+    IVF(n_partition=2000, n_probe=50),
     # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
     # HNSW(M=32, ef_construction=2, ef_search=16),
     # HNSW(M=32, ef_construction=32, ef_search=16),
