@@ -18,7 +18,7 @@ import abc
 import tempfile
 import os
 from vod_search.models import *  # TODO import each thing instead of wildcard.
-from vod_benchmarking import DockerStatsLogger
+from vod_benchmarking import DockerMemoryLogger
 from datetime import datetime
 
 
@@ -28,12 +28,10 @@ FIGURE OUT WHY FAISS DOES NOT UPDATE THE EF_ PARAMETERS
 
 DONE - save the results in a document.
 DONE - make the three master objects behave equally. Edit the template / base object.
-add this to some computational setup
 add databases to benchmark loop.
 save all timers, plot histograms
 implement filtering, categories, subsets etc.
 a never ending task -> double check and polish the parameter specification. etc.
-
 start writing theory for the report.
 """
 
@@ -191,61 +189,63 @@ for _SearchMaster in _SearchMasters:
         try:
             sleep(5)  # wait for server to terminate before creating new
             print("Spinning up server...")
-            with DockerStatsLogger(filename=f"DOCKER_STATS_LOG_{BENCHMARK_RUN_NAME}.csv") as docker_logger:
-                masterTimer.begin()  # time server startup and build
-                timestamps.append(("BeginServer", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-                with _SearchMaster(vectors=index_vectors, index_parameters=index_specification) as master:
-                    timestamps.append(("DoneIngesting", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-                    sleep(20)  # wait for server to settle after ingesting vectors
-                    print(f"Benchmarking {master}")
-                    timestamps.append(("BeginBenchmarking", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-                    client = master.get_client()
-                    masterTimer.end()
+            dockerMemoryLogger = DockerMemoryLogger(filename="./docker_memory_logs.csv")
+            masterTimer.begin()  # time server startup and build
+            timestamps.append(("BeginServer", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            dockerMemoryLogger.set_begin_ingesting()
+            with _SearchMaster(vectors=index_vectors, index_parameters=index_specification) as master:
+                dockerMemoryLogger.set_done_ingesting()
 
-                    recalls = []
-                    recalls_at_1 = []
-                    recalls_at_10 = []
-                    recalls_at_100 = []
+                print(f"Benchmarking {master}")
 
-                    for trial in track(range(n_warmup), description=f"Warming up"):
-                        results = client.search(vector=query_vectors[trial], top_k=top_k)
+                client = master.get_client()
+                masterTimer.end()
 
-                    for _ in range(3):
-                        sleep(5)
-                        for trial in track(range(n_trials), description=f"Benchmarking"):
-                            # get search results
-                            searchTimer.begin()
-                            results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
-                            searchTimer.end()
-                            pred_indices = results.indices
+                recalls = []
+                recalls_at_1 = []
+                recalls_at_10 = []
+                recalls_at_100 = []
 
-                            # get true results
-                            true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
+                for trial in track(range(n_warmup), description=f"Warming up"):
+                    results = client.search(vector=query_vectors[trial], top_k=top_k)
 
-                            # save trial results
-                            recalls.append(recall_batch(pred_indices, true_indices))
-                            recalls_at_1.append(recall_at_k(pred_indices, true_indices, 1))
-                            recalls_at_10.append(recall_at_k(pred_indices, true_indices, 10))
-                            recalls_at_100.append(recall_at_k(pred_indices, true_indices, 100))
+                dockerMemoryLogger.set_begin_benchmarking()
+                for trial in track(range(n_trials), description=f"Benchmarking"):
+                    # get search results
+                    searchTimer.begin()
+                    results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
+                    searchTimer.end()
+                    pred_indices = results.indices
 
-                    timestamps.append(("DoneBenchmarking", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-                    sleep(20)
-                    timestamps.append(("DoneServer", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-                    benchmark_results.append(
-                        {
-                            "Index": master.__repr__(),
-                            "Index parameters.": f"{index_specification}",
-                            "Build speed (s)": masterTimer.mean,
-                            "Search speed avg. (ms)": searchTimer.mean * 1000,
-                            "Search speed p95 (ms)": searchTimer.pk_latency(95) * 1000,
-                            "Recall avg": np.mean(recalls),
-                            "Recall@1": np.mean(recalls_at_1),
-                            "Recall@10": np.mean(recalls_at_10),
-                            "Recall@100": np.mean(recalls_at_100),
-                            "Est. memory usage (GB)": 0,
-                        }
-                    )
+                    # get true results
+                    true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
+
+                    # save trial results
+                    recalls.append(recall_batch(pred_indices, true_indices))
+                    recalls_at_1.append(recall_at_k(pred_indices, true_indices, 1))
+                    recalls_at_10.append(recall_at_k(pred_indices, true_indices, 10))
+                    recalls_at_100.append(recall_at_k(pred_indices, true_indices, 100))
+
+                dockerMemoryLogger.set_done_benchmarking()
+                dockerMemoryLogger.stop_logging()
+
+                memory_statistics: dict[str, float] = dockerMemoryLogger.get_statistics()
+
+                benchmark_results.append(
+                    {
+                        "Index": master.__repr__(),
+                        "Index parameters.": f"{index_specification}",
+                        "Build speed (s)": masterTimer.mean,
+                        "Search speed avg. (ms)": searchTimer.mean * 1000,
+                        "Search speed p95 (ms)": searchTimer.pk_latency(95) * 1000,
+                        "Recall avg": np.mean(recalls),
+                        "Recall@1": np.mean(recalls_at_1),
+                        "Recall@10": np.mean(recalls_at_10),
+                        "Recall@100": np.mean(recalls_at_100),
+                        **memory_statistics,
+                    }
+                )
         except Exception as e:
             print("Benchmark went wrong.", e)
             benchmark_results.append(
@@ -259,7 +259,10 @@ for _SearchMaster in _SearchMasters:
                     "Recall@1": -1,
                     "Recall@10": -1,
                     "Recall@100": -1,
-                    "Est. memory usage (GB)": -1,
+                    "ingesting_max": -1,
+                    "ingesting_mean": -1,
+                    "benchmarking_max": -1,
+                    "benchmarking_mean": -1,
                 }
             )
 
