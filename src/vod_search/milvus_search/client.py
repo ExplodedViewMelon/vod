@@ -181,7 +181,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         self.force_quit_docker()
 
     def force_quit_docker(self):
-        subprocess.run(["docker-compose", "down"], env=self._make_env())
+        subprocess.run(["docker compose", "down"], env=self._make_env())
 
     def get_client(self) -> MilvusSearchClient:
         return MilvusSearchClient(host=self.host, port=self.port, master=self, collection=self.collection)
