@@ -24,8 +24,6 @@ from datetime import datetime
 
 """
 TODO
-FIGURE OUT WHY FAISS DOES NOT UPDATE THE EF_ PARAMETERS
-
 DONE - save the results in a document.
 DONE - make the three master objects behave equally. Edit the template / base object.
 add databases to benchmark loop.
@@ -43,28 +41,28 @@ BENCHMARK_RUN_NAME = "QdrantLoggerTest"
 _SearchMasters = [
     milvus_search.MilvusSearchMaster,
     # faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
+    # qdrant_search.QdrantSearchMaster,
 ]
 
 preprocessings = [
-    # None,  # Remember this one!
+    None,  # Remember this one!
     # ProductQuantization(m=5),  # must be divisible with n_dimensions
     # ProductQuantization(m=4),
     # ProductQuantization(m=8),
-    ScalarQuantization(n=8),
+    # ScalarQuantization(n=8),
     # ScalarQuantization(n=8),
 ]
 
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
-    IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
+    # IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
     IVF(n_partition=1000, n_probe=50),
     # IVF(n_partition=2000, n_probe=50),
     # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
     # HNSW(M=32, ef_construction=2, ef_search=16),
-    HNSW(M=32, ef_construction=32, ef_search=16),
+    # HNSW(M=32, ef_construction=32, ef_search=16),
     # HNSW(M=32, ef_construction=64, ef_search=64),
-    HNSW(M=64, ef_construction=64, ef_search=64),
+    # HNSW(M=64, ef_construction=64, ef_search=64),
     # HNSW(M=64, ef_construction=256, ef_search=64),
     # HNSW(M=128, ef_construction=256, ef_search=128),
     # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
@@ -231,6 +229,7 @@ for _SearchMaster in _SearchMasters:
                 dockerMemoryLogger.stop_logging()
 
                 memory_statistics: dict[str, float] = dockerMemoryLogger.get_statistics()
+                dockerMemoryLogger.make_plots()
 
                 benchmark_results.append(
                     {

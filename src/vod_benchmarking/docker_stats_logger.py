@@ -24,7 +24,7 @@ class DockerStatsLoggerOld:
             docker stats --no-stream | while read line; do
                 echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> ./{self.filename}
             done
-            sleep 0.1
+            sleep 0.5
         done
         """
 
@@ -51,15 +51,16 @@ class DockerStatsLoggerOld:
 
 
 class DockerMemoryLogger:
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, overwrite_logs: bool = True):
         self.filename = filename
         self.begin_ingesting: str = "-1"
         self.done_ingesting: str = "-1"
         self.begin_benchmarking: str = "-1"
         self.done_benchmarking: str = "-1"
         self.start_logging()
-        with open(self.filename, "w") as file:  # make file or overwrite
-            pass
+        if overwrite_logs:
+            with open(self.filename, "w") as file:  # make file or overwrite
+                pass
 
     def start_logging(self):
         print("starting docker logging")
@@ -75,6 +76,7 @@ class DockerMemoryLogger:
         # Start the script in a background thread
         self.thread = threading.Thread(target=self.run_script, args=(script,))
         self.thread.start()
+        sleep(1)
 
     def stop_logging(self):
         print("stopping docker logging")
@@ -118,15 +120,23 @@ class DockerMemoryLogger:
         plt.figure(figsize=(15, 5))
         plot_memory_usage(df)
 
-        _T = []
-
-        ts = [timestamp for _, timestamp in _T]
-        timestamps = pd.to_datetime(ts)
+        timestamps_raw = [
+            timestamp
+            for timestamp in [
+                self.begin_ingesting,
+                self.done_ingesting,
+                self.begin_benchmarking,
+                self.done_benchmarking,
+            ]
+            if timestamp != "-1"
+        ]
+        timestamps = pd.to_datetime(timestamps_raw)
+        labels = ["begin_ingesting", "done_ingesting", "begin_benchmarking", "done_benchmarking"]
 
         plt.vlines(timestamps, 0, df.MEMORY_USAGE_MB.max())
-        for label, timestamp in _T:
+        for label, timestamp in zip(labels, timestamps):
             plt.text(
-                pd.to_datetime(timestamp),
+                timestamp,  # type: ignore
                 df.MEMORY_USAGE_MB.max(),
                 label,
                 rotation=45,
@@ -136,7 +146,7 @@ class DockerMemoryLogger:
         plt.savefig("./figure_memory_logs.png")
 
     def get_data(self):
-        df = pd.read_csv("/Users/oas/Documents/VOD/vod/{self.filename}", delimiter=r"\s\s+", engine="python")
+        df = pd.read_csv(f"/Users/oas/Documents/VOD/vod/{self.filename}", delimiter=r"\s\s+", engine="python")
         df = df.query("NAME != 'NAME'")  # remove headers
         columns = df.columns.tolist()  # change name of timestamp
         columns[0] = "TIMESTAMP"
@@ -170,8 +180,14 @@ class DockerMemoryLogger:
         # get either milvus or qdrant here. or faiss.
 
         return {
-            "ingesting_max": df_ingesting.max(),
-            "ingesting_mean": df_ingesting.mean(),
-            "benchmarking_max": df_benchmarking.max(),
-            "benchmarking_mean": df_benchmarking.mean(),
+            "ingesting_max": df_ingesting.MEMORY_USAGE_MB.max(),
+            "ingesting_mean": df_ingesting.MEMORY_USAGE_MB.mean(),
+            "benchmarking_max": df_benchmarking.MEMORY_USAGE_MB.max(),
+            "benchmarking_mean": df_benchmarking.MEMORY_USAGE_MB.mean(),
         }
+
+
+if __name__ == "__main__":
+    dm = DockerMemoryLogger("docker_memory_logs.csv", overwrite_logs=False)
+    dm.stop_logging()
+    dm.make_plots()
