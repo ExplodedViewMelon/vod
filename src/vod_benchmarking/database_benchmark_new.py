@@ -45,28 +45,28 @@ think about numba optimizations and what not.
 
 _SearchMasters = [
     milvus_search.MilvusSearchMaster,
-    # faiss_search.FaissMaster,
-    # qdrant_search.QdrantSearchMaster,
+    faiss_search.FaissMaster,
+    qdrant_search.QdrantSearchMaster,
 ]
 
 preprocessings = [
     None,  # Remember this one!
-    # ProductQuantization(m=5),  # must be divisible with n_dimensions
+    ProductQuantization(m=5),  # must be divisible with n_dimensions
     # ProductQuantization(m=4),
     # ProductQuantization(m=8),
     # ScalarQuantization(n=8),
-    # ScalarQuantization(n=8),
+    ScalarQuantization(n=8),
 ]
 
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
     IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
     # IVF(n_partition=1000, n_probe=50),
-    # IVF(n_partition=2000, n_probe=50),
+    IVF(n_partition=2000, n_probe=100),
     # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
     # HNSW(M=32, ef_construction=2, ef_search=16),
     # HNSW(M=32, ef_construction=32, ef_search=16),
-    # HNSW(M=32, ef_construction=64, ef_search=64),
+    HNSW(M=32, ef_construction=128, ef_search=64),
     # HNSW(M=64, ef_construction=64, ef_search=64),
     # HNSW(M=64, ef_construction=256, ef_search=64),
     HNSW(M=64, ef_construction=256, ef_search=128),
@@ -121,7 +121,7 @@ def _create_index_param(preprocessings, index_types, metrics):
 
 top_k = 100
 n_trials = 300
-n_warmup = 10
+n_warmup = n_trials // 5
 n_query_vectors = n_warmup + n_trials
 query_batch_size = 10
 

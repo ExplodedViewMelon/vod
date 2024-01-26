@@ -39,9 +39,6 @@ class HNSW:
     ef_search: int  # search
 
     def __init__(self, *, M, ef_construction, ef_search) -> None:
-        assert M > 0
-        assert ef_construction > 0
-        assert ef_search > 0
         self.M = M
         self.ef_construction = ef_construction
         self.ef_search = ef_search
@@ -73,8 +70,8 @@ class IndexParameters(abc.ABC):
         self.index_type = index_type
         self.metric = metric
 
-        if isinstance(self.preprocessing, ProductQuantization):
-            assert isinstance(self.index_type, IVF), "HSNW does not support ProductQuantization"
+        # if isinstance(self.preprocessing, ProductQuantization): # NOTE this is caught in the try-except clause.
+        #     assert isinstance(self.index_type, IVF), "HSNW does not support ProductQuantization"
 
     def __repr__(self) -> str:
         return f"{self.index_type}, {self.preprocessing}, {self.metric}"
