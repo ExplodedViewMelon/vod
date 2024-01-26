@@ -288,6 +288,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
                 client.delete_collection(collection_name=self._index_name)
                 index_exist = False
 
+        self.timerBuildIndex.begin()
         if not index_exist:
             # Create the index & Ingest the data
             # body = _make_qdrant_body(vshp[-1], self._qdrant_body)
@@ -304,6 +305,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
 
             # Validate the index
             _validate(client, self._index_name, self._vectors, raise_if_invalid=True)
+        self.timerBuildIndex.end()
 
     def _on_exit(self) -> None:
         if not self._persistent:

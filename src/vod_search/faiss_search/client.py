@@ -229,6 +229,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             # TODO include ef_construction and ef_search.
 
     def _build_index(self) -> None:
+        self.timerBuildIndex.begin()
         factory_string = self._get_factory_string()
         # index = faiss.index_factory(self.vectors.shape[-1], factory_string)
 
@@ -248,6 +249,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.index_path = f"{self.tmpdir.name}/index.faiss"
         faiss.write_index(index, self.index_path)
+        self.timerBuildIndex.end()
 
     def _cleanup(self):
         print("Exiting and cleaning up temporary data folder")

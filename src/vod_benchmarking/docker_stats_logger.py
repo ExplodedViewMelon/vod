@@ -6,7 +6,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import subprocess
 import threading
-import warnings
 import os
 import warnings
 

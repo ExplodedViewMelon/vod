@@ -6,7 +6,6 @@ import json
 
 #   import numba
 import pydantic
-from vod_benchmarking.database_benchmark_new import Timer
 from vod_search import base
 import vod_types as vt
 import abc
@@ -163,8 +162,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         self.collection = None
         self.index_parameters = index_parameters
         self.batch_size = 1000
-        self.timerBuildIndex = Timer()
-        self.timerStartServer = Timer()
 
         skip_setup = False
         self.force_quit_docker()

@@ -177,12 +177,12 @@ for _SearchMaster in _SearchMasters:
             timestamps.append(("BeginServer", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             dockerMemoryLogger.set_begin_ingesting()
             with _SearchMaster(vectors=index_vectors, index_parameters=index_specification) as master:
+                masterTimer.end()
                 dockerMemoryLogger.set_done_ingesting()
 
                 print(f"Benchmarking {master}")
 
                 client = master.get_client()
-                masterTimer.end()
 
                 recalls = []
                 recalls_at_1 = []
@@ -225,7 +225,8 @@ for _SearchMaster in _SearchMasters:
                     {
                         "Index": master.__repr__(),
                         "Index parameters.": f"{index_specification}",
-                        "Build speed (s)": masterTimer.mean,
+                        "Server startup speed (s)": masterTimer.mean - master.timerBuildIndex.mean,
+                        "Index build speed (s)": master.timerBuildIndex.mean,
                         "Search speed avg. (ms)": searchTimer.mean * 1000,
                         "Search speed p95 (ms)": searchTimer.pk_latency(95) * 1000,
                         "Recall avg": np.mean(recalls),
@@ -245,7 +246,8 @@ for _SearchMaster in _SearchMasters:
                 {
                     "Index": master.__repr__() if master else "None",
                     "Index parameters.": f"error: {tb}",
-                    "Build speed (s)": -1,
+                    "Server startup speed (s)": -1,
+                    "Index build speed (s)": -1,
                     "Search speed avg. (ms)": -1,
                     "Search speed p95 (ms)": -1,
                     "Recall avg": -1,

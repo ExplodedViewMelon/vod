@@ -8,6 +8,8 @@ import typing as typ
 
 import loguru
 import numpy as np
+
+from vod_benchmarking import Timer
 import vod_types as vt
 from typing_extensions import Self
 
@@ -96,6 +98,7 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
     ) -> None:
         self.skip_setup = skip_setup
         self.free_resources = free_resources
+        self.timerBuildIndex = Timer()
 
     def __enter__(self) -> "Self":
         """Start the server."""
