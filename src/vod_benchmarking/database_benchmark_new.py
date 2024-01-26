@@ -21,6 +21,10 @@ import os
 from vod_search.models import *  # TODO import each thing instead of wildcard.
 from vod_benchmarking import DockerMemoryLogger
 from datetime import datetime
+import os
+from vod_benchmarking import Timer
+
+os.environ["MKL_THREADING_LAYER"] = "TBB"
 
 
 """
@@ -32,6 +36,8 @@ save all timers, plot histograms
 implement filtering, categories, subsets etc.
 a never ending task -> double check and polish the parameter specification. etc.
 start writing theory for the report.
+think about numba optimizations and what not.
+-> RUN A TEST TO CHECK IF NUMBA JIT THING IS IMPORTANT
 """
 
 # most important hyper parameters:
@@ -39,8 +45,8 @@ start writing theory for the report.
 
 _SearchMasters = [
     milvus_search.MilvusSearchMaster,
-    faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
+    # faiss_search.FaissMaster,
+    # qdrant_search.QdrantSearchMaster,
 ]
 
 preprocessings = [
@@ -48,15 +54,15 @@ preprocessings = [
     # ProductQuantization(m=5),  # must be divisible with n_dimensions
     # ProductQuantization(m=4),
     # ProductQuantization(m=8),
-    ScalarQuantization(n=8),
+    # ScalarQuantization(n=8),
     # ScalarQuantization(n=8),
 ]
 
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
     IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
-    IVF(n_partition=1000, n_probe=50),
-    IVF(n_partition=2000, n_probe=50),
+    # IVF(n_partition=1000, n_probe=50),
+    # IVF(n_partition=2000, n_probe=50),
     # HNSW(M=40, ef_construction=1 * d, ef_search=1 * d / 2),
     # HNSW(M=32, ef_construction=2, ef_search=16),
     # HNSW(M=32, ef_construction=32, ef_search=16),
@@ -75,7 +81,7 @@ metrics = [
 
 def get_ground_truth(vectors: np.ndarray, query: np.ndarray, top_k: int) -> np.ndarray:
     """use sklearn to return flat, brute top_k NN indices"""
-    nbrs = NearestNeighbors(n_neighbors=top_k, algorithm="brute").fit(vectors)
+    nbrs = NearestNeighbors(n_neighbors=top_k, algorithm="brute").fit(vectors)  # type: ignore
     distances, indices = nbrs.kneighbors(query)
     return indices
 
@@ -96,30 +102,6 @@ def recall_at_k(index1: np.ndarray, index2: np.ndarray, k: int) -> float:
     return np.array(_r).mean()
 
 
-class Timer:
-    def __init__(self) -> None:
-        self.t0: float = 0
-        self.t1: float = 0
-        self.durations = []
-
-    def begin(self) -> None:
-        self.t0 = perf_counter()
-
-    def end(self) -> None:
-        self.t1 = perf_counter()
-        self.durations.append(self.t1 - self.t0)
-
-    @property
-    def mean(self) -> float:
-        return float(np.mean(self.durations))
-
-    def pk_latency(self, k) -> float:
-        return np.percentile(self.durations, k)
-
-    def __str__(self) -> str:
-        return f"{self.mean}s"
-
-
 def _create_index_param(preprocessings, index_types, metrics):
     _all_index_param = []
 
@@ -138,7 +120,7 @@ def _create_index_param(preprocessings, index_types, metrics):
 
 
 top_k = 100
-n_trials = 100
+n_trials = 300
 n_warmup = 10
 n_query_vectors = n_warmup + n_trials
 query_batch_size = 10
@@ -285,9 +267,10 @@ df_results = pd.DataFrame(benchmark_results)
 print(df_results)
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-current_path = os.getcwd()
+output_directory = f"{os.getcwd()}/benchmarking_results"
+os.makedirs(output_directory, exist_ok=True)
 
-output_file = f"{current_path}/benchmarking_results/{timestamp}.csv"
+output_file = f"{output_directory}/{timestamp}.csv"
 print("saving results to", output_file)
 df_results.to_csv(output_file)
 

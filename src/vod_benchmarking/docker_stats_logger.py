@@ -120,7 +120,7 @@ class DockerMemoryLogger:
         labels = ["begin_server", "done_ingesting", "begin_benchmarking", "done_server"]
 
         plt.vlines(timestamps, 0, df.MEMORY_USAGE_MB.max())
-        for label, timestamp in zip(labels, timestamps):
+        for label, timestamp in zip(labels, timestamps):  # type: ignore
             plt.text(
                 timestamp,  # type: ignore
                 df.MEMORY_USAGE_MB.max(),
@@ -138,7 +138,7 @@ class DockerMemoryLogger:
         columns[0] = "TIMESTAMP"
         df.columns = columns
         df.TIMESTAMP = pd.to_datetime(df.TIMESTAMP)  # change type to datetime
-        df.TIMESTAMP = df.TIMESTAMP + pd.Timedelta(hours=1)
+        # df.TIMESTAMP = df.TIMESTAMP + pd.Timedelta(hours=1) # NOTE fixes the problem on mac.
 
         def convert_memory_usage(s):
             if "KiB" in s:
@@ -180,3 +180,6 @@ if __name__ == "__main__":
     dm.set_begin_benchmarking()
     dm.stop_logging()
     dm.make_plots()
+
+
+# meow meow

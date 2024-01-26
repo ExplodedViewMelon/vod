@@ -3,8 +3,10 @@ import subprocess
 from typing import Any, Optional
 
 import json
-import numba
+
+#   import numba
 import pydantic
+from vod_benchmarking.database_benchmark_new import Timer
 from vod_search import base
 import vod_types as vt
 import abc
@@ -122,7 +124,7 @@ class MilvusSearchClient(base.SearchClient):
         return _search_batch_to_rdtypes(result, top_k)
 
 
-@numba.jit(forceobj=True, looplift=True)
+# @numba.jit(forceobj=True, looplift=True)
 def _search_batch_to_rdtypes(batch: SearchResult, top_k: int) -> vt.RetrievalBatch:
     """Convert a batch of search results to rdtypes."""
     scores = np.full((len(batch), top_k), -np.inf, dtype=np.float32)
@@ -161,6 +163,8 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         self.collection = None
         self.index_parameters = index_parameters
         self.batch_size = 1000
+        self.timerBuildIndex = Timer()
+        self.timerStartServer = Timer()
 
         skip_setup = False
         self.force_quit_docker()
@@ -244,6 +248,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             }
 
     def _build_index(self) -> None:
+        self.timerBuildIndex.begin()
         logger.info("Creating collection 'index_name'")
         if len(self.vectors.shape) != 2:
             raise ValueError(f"Expected a NxD vectors, got {self.vectors.shape}")
@@ -270,6 +275,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         collection.create_index("embeddings", index_parameters)
         collection.load()  # load index into server
         self.collection = collection
+        self.timerBuildIndex.end()
 
     def __repr__(self) -> str:
         return f"index: milvus {self.index_parameters}"

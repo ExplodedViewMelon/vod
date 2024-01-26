@@ -1,0 +1,23 @@
+git clone https://github.com/ExplodedViewMelon/vod.git
+cd vod
+git checkout Vector-database-benchmark
+git pull
+
+# Get poetry
+curl -sSL https://install.python-poetry.org | python3 -
+poetry install
+
+poetry add scikit-learn
+poetry add pymilvus
+
+# Add Docker's official GPG key:
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Setup stable repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io
