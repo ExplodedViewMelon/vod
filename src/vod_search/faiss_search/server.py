@@ -59,12 +59,12 @@ def health_check() -> str:
     return "OK"
 
 
-@app.post("/search")
-async def search(query: SearchFaissQuery) -> FaissSearchResponse:
-    """Search the index."""
-    query_vec = np.asarray(query.vectors, dtype=np.float32)
-    scores, indices = faiss_index.search(query_vec, k=query.top_k)  # type: ignore
-    return FaissSearchResponse(scores=scores.tolist(), indices=indices.tolist())
+# @app.post("/search")
+# async def search(query: SearchFaissQuery) -> FaissSearchResponse:
+#     """Search the index."""
+#     query_vec = np.asarray(query.vectors, dtype=np.float32)
+#     scores, indices = faiss_index.search(query_vec, k=query.top_k)  # type: ignore
+#     return FaissSearchResponse(scores=scores.tolist(), indices=indices.tolist())
 
 
 @app.post("/update")

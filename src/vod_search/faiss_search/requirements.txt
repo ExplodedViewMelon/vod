@@ -1,0 +1,6 @@
+faiss-cpu
+numpy
+stackprinter
+uvicorn
+fastapi
+loguru

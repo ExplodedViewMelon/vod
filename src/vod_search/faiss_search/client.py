@@ -59,22 +59,22 @@ class FaissClient(base.SearchClient):
         response.raise_for_status()
         return "OK" in response.text
 
-    def search_py(self, query_vec: np.ndarray, top_k: int = 3, timeout: float = 120) -> vt.RetrievalBatch:
-        """Search the server given a batch of vectors (slow implementation)."""
-        response = requests.post(
-            f"{self.url}/search",
-            json={
-                "vectors": query_vec.tolist(),
-                "top_k": top_k,
-            },
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        data = response.json()
-        return vt.RetrievalBatch.cast(
-            indices=data["indices"],
-            scores=data["scores"],
-        )
+    # def search_py(self, query_vec: np.ndarray, top_k: int = 3, timeout: float = 120) -> vt.RetrievalBatch:
+    #     """Search the server given a batch of vectors (slow implementation)."""
+    #     response = requests.post(
+    #         f"{self.url}/search",
+    #         json={
+    #             "vectors": query_vec.tolist(),
+    #             "top_k": top_k,
+    #         },
+    #         timeout=timeout,
+    #     )
+    #     response.raise_for_status()
+    #     data = response.json()
+    #     return vt.RetrievalBatch.cast(
+    #         indices=data["indices"],
+    #         scores=data["scores"],
+    #     )
 
     def search(
         self,
@@ -168,22 +168,40 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             os.environ["PYTHONPATH"] = f"{os.environ['PYTHONPATH']}:{Path.cwd()}"
         return env
 
+    # def _make_cmd(self) -> list[str]:
+    #     executable_path = sys.executable  # TODO also pass ef_search
+    #     return [
+    #         str(executable_path),
+    #         str(server_run_path),
+    #         "--index-path",
+    #         str(self.index_path),
+    #         "--nprobe",
+    #         str(self.index_parameters.index_type.n_probe) if isinstance(self.index_parameters.index_type, IVF) else "0",
+    #         "--host",
+    #         str(self.host),
+    #         "--port",
+    #         str(self.port),
+    #         "--logging-level",
+    #         str(self.logging_level),
+    #         *(["--serve-on-gpu"] if self.serve_on_gpu else []),
+    #     ]
     def _make_cmd(self) -> list[str]:
+        # DOCKERIZED
         executable_path = sys.executable  # TODO also pass ef_search
         return [
-            str(executable_path),
-            str(server_run_path),
-            "--index-path",
-            str(self.index_path),
-            "--nprobe",
-            str(self.index_parameters.index_type.n_probe) if isinstance(self.index_parameters.index_type, IVF) else "0",
-            "--host",
-            str(self.host),
-            "--port",
-            str(self.port),
-            "--logging-level",
-            str(self.logging_level),
-            *(["--serve-on-gpu"] if self.serve_on_gpu else []),
+            "docker",
+            "run",
+            "-v",
+            f"{self.tmpdir}:~/faiss_index",
+            # "--nprobe",
+            # str(self.index_parameters.index_type.n_probe) if isinstance(self.index_parameters.index_type, IVF) else "0",
+            # "--host",
+            # str(self.host),
+            # "--port",
+            # str(self.port),
+            # "--logging-level",
+            # str(self.logging_level),
+            # *(["--serve-on-gpu"] if self.serve_on_gpu else []),
         ]
 
     def get_client(self) -> FaissClient:
@@ -238,9 +256,11 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         index = faiss_search.build_faiss_index(  # valentin's code
             vectors=self.vectors,
             factory_string=factory_string,
-            ef_construction=self.index_parameters.index_type.ef_construction
-            if isinstance(self.index_parameters.index_type, HNSW)
-            else -1,
+            ef_construction=(
+                self.index_parameters.index_type.ef_construction
+                if isinstance(self.index_parameters.index_type, HNSW)
+                else -1
+            ),
         )
 
         if isinstance(self.index_parameters.index_type, HNSW):

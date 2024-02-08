@@ -65,6 +65,9 @@ class DatasetHDF5Simple(abc.ABC):
     def name(self) -> str:
         NotImplementedError()
 
+    def __repr__(self) -> str:
+        return self.name
+
 
 class DatasetGlove(DatasetHDF5Simple):
     """Dataset of size (~1_000_000, 25) at ~121MB"""
