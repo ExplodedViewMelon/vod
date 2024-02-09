@@ -2,16 +2,17 @@
 FROM python:3.11-slim
 
 # Install git
-RUN apt-get update && apt-get install -y git
+# RUN apt-get update && apt-get install -y git
+# RUN git clone --branch Vector-database-benchmark https://github.com/ExplodedViewMelon/vod.git /vod
 
-# Clone the specific branch directly to avoid checkout
-RUN git clone --branch Vector-database-benchmark https://github.com/ExplodedViewMelon/vod.git /vod
+ADD ./src ./vod/src
+ADD ./requirements.txt ./vod/requirements.txt
 
 # Set the working directory
 WORKDIR /vod
 
 # Update the code to the latest version
-RUN git pull
+#RUN git pull
 
 # Set the PYTHONPATH environment variable to include the src directory
 # ENV PYTHONPATH="/vod/src:$PYTHONPATH"
