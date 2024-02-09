@@ -8,6 +8,9 @@ WORKDIR /vod
 RUN git checkout Vector-database-benchmark
 RUN git pull
 
+ENV PYTHONPATH="/usr/src:$PYTHONPATH"
+RUN export PYTHONPATH="${PYTHONPATH}:src/"
+
 # it does not actually need to work, it just needs to run the faiss server.
 # the above comment shows the stupidity of the approach...
 RUN pip install -r requirements.txt
@@ -18,9 +21,5 @@ RUN pip install h5py pymilvus
 # RUN poetry install
 
 EXPOSE 6637
-
-ENV PYTHONPATH="/usr/src:$PYTHONPATH"
-
-RUN export PYTHONPATH="${PYTHONPATH}:src/"
 
 CMD ["python3", "src/vod_search/faiss_search/server.py", "--index-path", "faiss_index/index.faiss"]
