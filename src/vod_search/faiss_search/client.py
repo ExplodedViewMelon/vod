@@ -26,7 +26,8 @@ class FaissClient(base.SearchClient):
     def __init__(
         self,
         host: str = "http://localhost",
-        port: int = 7678,
+        # port: int = 7678,
+        port: int = 6637,
     ):
         self.host = host
         self.port = port
