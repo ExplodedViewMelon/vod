@@ -15,6 +15,7 @@ from vod_search.models import *
 
 import faiss
 import tempfile
+import os
 
 # get the path to the server script
 server_run_path = Path(__file__).parent / "server.py"
@@ -190,6 +191,12 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         # DOCKERIZED
         executable_path = sys.executable  # TODO also pass ef_search
         print("RUNNING FAISS SERVER IN DOCKER")
+        print("content of temp folder, to be copied into docker:")
+        folder_path = self.tmpdir.name
+        file_list = os.listdir(folder_path)
+        for file_name in file_list:
+            print(file_name)
+
         return [
             "docker",
             "run",

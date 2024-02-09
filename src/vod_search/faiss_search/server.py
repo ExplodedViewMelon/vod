@@ -2,6 +2,7 @@ import argparse
 import pathlib
 import re
 import sys
+import os
 
 src_path = pathlib.Path(__file__).absolute().parent.parent.parent.parent
 sys.path.insert(0, src_path.as_posix())  # hack to allow imports from src
@@ -43,8 +44,12 @@ def parse_args() -> argparse.Namespace:
 def init_index(arguments: argparse.Namespace) -> faiss.Index:
     """Initialize the index."""
     logger.info("Initializing index")
+    file_list = os.listdir(arguments.index_path)
+    logger.info("folder contains:", file_list)
+
     index = faiss.read_index(arguments.index_path)
     index.nprobe = arguments.nprobe
+    logger.info("index initialized succesfully.")
     return index
 
 
