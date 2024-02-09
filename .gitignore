@@ -160,5 +160,5 @@ benchmarking_results/
 mutagen.yml
 mutagen.yml.lock
 
-
+*.png
 poetry.lock
