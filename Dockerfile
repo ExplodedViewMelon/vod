@@ -18,7 +18,8 @@ ENV PYTHONPATH="/vod/src:$PYTHONPATH"
 
 # Install dependencies
 RUN pip install -r requirements.txt
-RUN pip install h5py pymilvus
+RUN pip install h5py
+RUN pip install pymilvus
 
 # EXPOSE command is used to inform Docker that the container listens on the specified network port(s) at runtime
 EXPOSE 6637
