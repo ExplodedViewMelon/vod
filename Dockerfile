@@ -14,7 +14,8 @@ WORKDIR /vod
 RUN git pull
 
 # Set the PYTHONPATH environment variable to include the src directory
-ENV PYTHONPATH="/vod/src:$PYTHONPATH"
+# ENV PYTHONPATH="/vod/src:$PYTHONPATH"
+ENV PYTHONPATH="/vod/src"
 
 # Install dependencies
 RUN pip install -r requirements.txt
