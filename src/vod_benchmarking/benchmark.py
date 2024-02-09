@@ -24,9 +24,9 @@ from datetime import datetime
 import os
 from vod_benchmarking import Timer
 import signal
+from loguru import logger
 
 os.environ["MKL_THREADING_LAYER"] = "TBB"
-
 
 """
 TODO
