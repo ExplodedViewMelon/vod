@@ -188,6 +188,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
     def _make_cmd(self) -> list[str]:
         # DOCKERIZED
         executable_path = sys.executable  # TODO also pass ef_search
+        print("RUNNING FAISS SERVER IN DOCKER")
         return [
             "docker",
             "run",
