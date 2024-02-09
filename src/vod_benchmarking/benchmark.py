@@ -46,8 +46,8 @@ Make build_index a standard thing in base object.
 
 _SearchMasters = [
     faiss_search.FaissMaster,
-    milvus_search.MilvusSearchMaster,
-    qdrant_search.QdrantSearchMaster,
+    # milvus_search.MilvusSearchMaster,
+    # qdrant_search.QdrantSearchMaster,
 ]
 
 preprocessings = [
@@ -63,8 +63,8 @@ preprocessings = [
 ef_parameter = 3  # like they recommended in the paper
 index_types = [
     IVF(n_partition=500, n_probe=25),  # NOTE dim must be divisible with n_partition
-    IVF(n_partition=2000, n_probe=100),
-    IVF(n_partition=8000, n_probe=1000),
+    # IVF(n_partition=2000, n_probe=100),
+    # IVF(n_partition=8000, n_probe=1000),
     # IVF(n_partition=16000, n_probe=1000),
     # IVF(n_partition=32000, n_probe=5000),
     # IVF(n_partition=1000, n_probe=50),
@@ -75,8 +75,8 @@ index_types = [
     # HNSW(M=64, ef_construction=64, ef_search=64),
     # HNSW(M=64, ef_construction=256, ef_search=64),
     HNSW(M=64, ef_construction=256, ef_search=128),
-    HNSW(M=128, ef_construction=256, ef_search=256),
-    HNSW(M=256, ef_construction=256, ef_search=256),
+    # HNSW(M=128, ef_construction=256, ef_search=256),
+    # HNSW(M=256, ef_construction=256, ef_search=256),
     # HNSW(M=160, ef_construction=ef_parameter * d, ef_search=ef_parameter * d),
     # NSW(M=13, ef_construction=10, ef_search=5),
 ]
@@ -84,7 +84,8 @@ metrics = [
     # "DOT",
     "L2",
 ]
-datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M, DatasetGlove, DatasetLastFM]
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M, DatasetGlove, DatasetLastFM]
+datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M]
 
 
 def get_ground_truth(vectors: np.ndarray, query: np.ndarray, top_k: int) -> np.ndarray:
@@ -236,9 +237,7 @@ for dataset_class in datasets_classes:
                     dockerMemoryLogger.set_done_benchmarking()
                     dockerMemoryLogger.stop_logging()
 
-                    memory_statistics: dict[str, float] = (
-                        dockerMemoryLogger.get_statistics()
-                    )
+                    memory_statistics: dict[str, float] = dockerMemoryLogger.get_statistics()
 
                     try:
                         dockerMemoryLogger.make_plots()

@@ -8,8 +8,10 @@ WORKDIR /vod
 RUN git checkout Vector-database-benchmark
 RUN git pull
 
+# it does not actually need to work, it just needs to run the faiss server.
+# the above comment shows the stupidity of the approach...
 RUN pip install -r requirements.txt
-
+RUN pip install h5py pymilvus
 # RUN apt-get install -y curl
 # RUN curl -sSL https://install.python-poetry.org | python3 -
 # ENV PATH="/root/.local/bin:${PATH}"
