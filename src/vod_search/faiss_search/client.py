@@ -196,6 +196,8 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             f"{self.tmpdir}:vod/faiss_index",
             "-t",
             "faiss_server",
+            "-p",
+            f"{self.port}:{self.port}",
             # "--nprobe",
             # str(self.index_parameters.index_type.n_probe) if isinstance(self.index_parameters.index_type, IVF) else "0",
             # "--host",

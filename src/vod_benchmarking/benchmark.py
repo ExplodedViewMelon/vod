@@ -157,7 +157,8 @@ timestamps = []
 tb = ""
 benchmarkTimer.begin()
 
-TIMEOUT_INDEX_BUILD = 120  # seconds
+# TIMEOUT_INDEX_BUILD = 120  # seconds
+TIMEOUT_INDEX_BUILD = 60 * 5  # seconds
 
 n_benchmarks = len(datasets_classes) * len(_SearchMasters) * len(index_specifications)
 print(f"Running {n_benchmarks} benchmarks in total.")
