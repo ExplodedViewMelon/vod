@@ -5,11 +5,8 @@ FROM python:3.11-slim
 # RUN apt-get update && apt-get install -y git
 # RUN git clone --branch Vector-database-benchmark https://github.com/ExplodedViewMelon/vod.git /vod
 
-ADD ./src ./vod/src
-ADD ./requirements.txt ./vod/requirements.txt
+COPY ./requirements.txt ./requirements.txt
 
-# Set the working directory
-WORKDIR /vod
 
 # Update the code to the latest version
 #RUN git pull
@@ -22,6 +19,11 @@ ENV PYTHONPATH="/vod/src"
 RUN pip install -r requirements.txt
 RUN pip install h5py
 RUN pip install pymilvus
+
+# copy all the code
+ADD ./src ./vod/src
+# Set the working directory
+WORKDIR /vod
 
 # EXPOSE command is used to inform Docker that the container listens on the specified network port(s) at runtime
 EXPOSE 6637

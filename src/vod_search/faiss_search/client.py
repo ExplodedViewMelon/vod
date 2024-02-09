@@ -188,6 +188,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
     #         *(["--serve-on-gpu"] if self.serve_on_gpu else []),
     #     ]
     def _make_cmd(self) -> list[str]:
+        # TODO: toggle whether to use a docker image or just a gunicorn app.
         # DOCKERIZED
         executable_path = sys.executable  # TODO also pass ef_search
         print("RUNNING FAISS SERVER IN DOCKER")

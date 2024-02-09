@@ -44,11 +44,21 @@ def parse_args() -> argparse.Namespace:
 def init_index(arguments: argparse.Namespace) -> faiss.Index:
     """Initialize the index."""
     logger.info("Initializing index")
-    logger.info("Does index exists?", os.path.exists(arguments.index_path))
+    logger.info(f"Does index exists? {os.path.exists(arguments.index_path)}")
+    logger.info(f"It's name? {arguments.index_path}")
+    file_list = os.listdir("faiss_index/")
+    logger.info(f"This exists: {file_list}")
+    for file_name in file_list:
+        file_path = os.path.join(arguments.index_path, file_name)
+        if os.path.isfile(file_path):
+            logger.info(f"Found file: {file_path}")
+        elif os.path.isdir(file_path):
+            logger.info(f"Found directory: {file_path}")
+    logger.info(f"f Does index exists? {os.path.exists(arguments.index_path)}")
 
     index = faiss.read_index(arguments.index_path)
     index.nprobe = arguments.nprobe
-    logger.info("index initialized succesfully.")
+    logger.info(f"index initialized succesfully with {index.nprobe}")
     return index
 
 

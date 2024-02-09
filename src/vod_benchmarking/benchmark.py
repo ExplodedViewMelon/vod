@@ -32,13 +32,14 @@ os.environ["MKL_THREADING_LAYER"] = "TBB"
 TODO
 DONE - save the results in a document.
 DONE - make the three master objects behave equally. Edit the template / base object.
-add databases to benchmark loop.
+DONE - add databases to benchmark loop.
 save all timers, plot histograms
 implement filtering, categories, subsets etc.
 a never ending task -> double check and polish the parameter specification. etc.
 start writing theory for the report.
 Fix folder structure.
 Make build_index a standard thing in base object.
+start writing report...
 """
 
 # most important hyper parameters:
