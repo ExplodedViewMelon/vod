@@ -26,4 +26,4 @@ RUN pip install pymilvus
 EXPOSE 6637
 
 # Command to run the faiss server
-CMD ["python3", "src/vod_search/faiss_search/server.py", "--index-path", "faiss_index/index.faiss"]
+CMD ["python3", "src/vod_search/faiss_search/server.py", "--index-path", "faiss_index/index.faiss", "--port", "6637"]
