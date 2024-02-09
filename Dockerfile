@@ -23,4 +23,4 @@ ENV PYTHONPATH="/usr/src:$PYTHONPATH"
 
 RUN export PYTHONPATH="${PYTHONPATH}:src/"
 
-CMD ["python3", "vod_search/faiss_search/server.py", "--index-path", "~/faiss_index/index.faiss"]
+CMD ["python3", "src/vod_search/faiss_search/server.py", "--index-path", "faiss_index/index.faiss"]
