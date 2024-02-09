@@ -48,12 +48,6 @@ def init_index(arguments: argparse.Namespace) -> faiss.Index:
     logger.info(f"It's name? {arguments.index_path}")
     file_list = os.listdir("faiss_index/")
     logger.info(f"This exists: {file_list}")
-    for file_name in file_list:
-        file_path = os.path.join(arguments.index_path, file_name)
-        if os.path.isfile(file_path):
-            logger.info(f"Found file: {file_path}")
-        elif os.path.isdir(file_path):
-            logger.info(f"Found directory: {file_path}")
     logger.info(f"f Does index exists? {os.path.exists(arguments.index_path)}")
 
     index = faiss.read_index(arguments.index_path)
@@ -73,12 +67,12 @@ def health_check() -> str:
     return "OK"
 
 
-# @app.post("/search")
-# async def search(query: SearchFaissQuery) -> FaissSearchResponse:
-#     """Search the index."""
-#     query_vec = np.asarray(query.vectors, dtype=np.float32)
-#     scores, indices = faiss_index.search(query_vec, k=query.top_k)  # type: ignore
-#     return FaissSearchResponse(scores=scores.tolist(), indices=indices.tolist())
+@app.post("/search")
+async def search(query: SearchFaissQuery) -> FaissSearchResponse:
+    """Search the index."""
+    query_vec = np.asarray(query.vectors, dtype=np.float32)
+    scores, indices = faiss_index.search(query_vec, k=query.top_k)  # type: ignore
+    return FaissSearchResponse(scores=scores.tolist(), indices=indices.tolist())
 
 
 @app.post("/update")

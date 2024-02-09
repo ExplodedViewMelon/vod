@@ -29,4 +29,4 @@ WORKDIR /vod
 EXPOSE 6637
 
 # Command to run the faiss server
-CMD ["python3", "src/vod_search/faiss_search/server.py", "--index-path", "faiss_index/index.faiss", "--port", "6637"]
+CMD ["python3", "src/vod_search/faiss_search/server.py", "--index-path", "faiss_index/index.faiss", "--port", "6637", "--host", "0.0.0.0"]
