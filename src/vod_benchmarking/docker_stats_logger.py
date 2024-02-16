@@ -26,6 +26,7 @@ class DockerMemoryLogger:
         self.index_specification: str = (
             f"{searchMasterName}_{index_specification.replace(', ', '_')}"  # remove spaces and append search master name
         )
+        self.searchMasterName = searchMasterName
         self.folder_path: str = f"./docker_memory_logs/{timestamp}/"
         self.begin_ingesting: str = "-1"
         self.done_ingesting: str = "-1"
@@ -145,6 +146,7 @@ class DockerMemoryLogger:
         df.columns = columns
         df.TIMESTAMP = pd.to_datetime(df.TIMESTAMP)  # change type to datetime
         # df.TIMESTAMP = df.TIMESTAMP + pd.Timedelta(hours=1) # NOTE fixes the problem on mac.
+        df = df.query("NAME.str.split('-')[0] == @self.searchMasterName")
 
         def convert_memory_usage(s):
             if "KiB" in s:

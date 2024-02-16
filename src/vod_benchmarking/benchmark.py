@@ -61,19 +61,19 @@ preprocessings = [
 
 index_types = [
     IVF(n_partition=100, n_probe=100),
-    IVF(n_partition=1000, n_probe=100),
-    IVF(n_partition=10000, n_probe=100),
+    # IVF(n_partition=1000, n_probe=100),
+    # IVF(n_partition=10000, n_probe=100),
     HNSW(M=16, ef_construction=128, ef_search=128),
-    HNSW(M=32, ef_construction=128, ef_search=128),
-    HNSW(M=64, ef_construction=128, ef_search=128),
+    # HNSW(M=32, ef_construction=128, ef_search=128),
+    # HNSW(M=64, ef_construction=128, ef_search=128),
 ]
 metrics = [
-    "L2",
+    # "L2",
     "DOT",
 ]
 
-datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M, DatasetGlove, DatasetLastFM]
-# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove] # smallest
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M, DatasetGlove, DatasetLastFM]
+datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # largest
 
 top_k = 100

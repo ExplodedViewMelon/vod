@@ -204,6 +204,9 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
         index_type: HNSW | IVF = self.index_parameters.index_type
 
+        if self.index_parameters.metric == "DOT":
+            self.index_parameters.metric = "IP"
+
         if isinstance(index_type, IVF):
             if isinstance(preprocessing, ProductQuantization):
                 return {
@@ -251,12 +254,16 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             raise ValueError(f"Expected a NxD vectors, got {self.vectors.shape}")
         N, D = self.vectors.shape
 
+        # get parameters to check for compatability before ingesting vectors
+        index_parameters = self._make_index_parameters()
+
         fields = [
             FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
             FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=D),
         ]
         schema = CollectionSchema(fields, "Milvus database - so far so good")
-        collection = Collection("index_name", schema, consistency_level="Strong")
+        # NOTE specifically setting number of shards to 1 to ensure fair benchmarking
+        collection = Collection("index_name", schema, consistency_level="Strong", num_shards=1)
 
         for j in track(range(0, N, self.batch_size), description=f"Milvus: Ingesting {N} vectors of size {D}"):
             to_insert = self.vectors[j : j + self.batch_size]
@@ -268,7 +275,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             collection.insert(entities)
 
         collection.flush()  # seals the unfilled buckets
-        index_parameters = self._make_index_parameters()
         collection.create_index("embeddings", index_parameters)
         collection.load()  # load index into server
         self.collection = collection

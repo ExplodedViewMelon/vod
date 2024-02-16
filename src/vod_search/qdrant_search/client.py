@@ -296,7 +296,8 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
             # Create the index & Ingest the data
             # body = _make_qdrant_body(vshp[-1], self._qdrant_body)
             body = _make_index_parameters(vshp[-1], self.index_parameters)
-            client.recreate_collection(collection_name=self._index_name, **body)
+            # NOTE specifically setting shard_number to 1 to ensure a fair benchmark
+            client.recreate_collection(collection_name=self._index_name, **body, shard_number=1)
 
             with DisableIndexing(client, self._index_name, delete_on_exception=True):
                 _ingest_data(
