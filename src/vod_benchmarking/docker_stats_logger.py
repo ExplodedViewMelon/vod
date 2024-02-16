@@ -9,29 +9,36 @@ import threading
 import os
 import warnings
 
-
 # DONE implement function for making plots
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
 class DockerMemoryLogger:
     def __init__(
-        self, title: str, *, folder_path: str = "./docker_memory_logs/", overwrite_logs: bool = True, timeout=600
+        self,
+        timestamp: str,
+        index_specification: str,
+        searchMasterName: str,
+        *,
+        overwrite_logs: bool = True,
+        timeout=600,
     ):
-        self.folder_path: str = folder_path
-        self.title: str = title
+        self.index_specification: str = (
+            f"{searchMasterName}_{index_specification.replace(', ', '_')}"  # remove spaces and append search master name
+        )
+        self.folder_path: str = f"./docker_memory_logs/{timestamp}/"
         self.begin_ingesting: str = "-1"
         self.done_ingesting: str = "-1"
         self.begin_benchmarking: str = "-1"
         self.done_benchmarking: str = "-1"
-        self.timeout = timeout
+        self.timeout: int = timeout
 
         # Create folder if it does not exist
         os.makedirs(self.folder_path, exist_ok=True)
 
         self.start_logging()
         if overwrite_logs:
-            with open(f"{self.folder_path}{self.title}.csv", "w") as file:  # make file or overwrite
+            with open(f"{self.folder_path}{self.index_specification}.csv", "w") as file:  # make file or overwrite
                 pass
 
     def start_logging(self):
@@ -49,7 +56,7 @@ class DockerMemoryLogger:
             fi
         
             docker stats --no-stream | while read line; do
-                echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> {self.folder_path}{self.title}.csv
+                echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> {self.folder_path}{self.index_specification}.csv
             done
             sleep 0.1
         done
@@ -95,7 +102,7 @@ class DockerMemoryLogger:
                 # t = range(0,len(memory_usage))
                 plt.plot(df_subset.TIMESTAMP, df_subset.MEMORY_USAGE_MB, label=process, marker="x")
                 plt.xticks(rotation=45)
-                # plt.title(f"{process} memory usage")
+                # plt.index_specification(f"{process} memory usage")
                 plt.xlabel("timestamp")
                 plt.ylabel("Memory Usage (MiB)")
             plt.legend()
@@ -128,10 +135,10 @@ class DockerMemoryLogger:
                 verticalalignment="bottom",
                 c="darkblue",
             )
-        plt.savefig(f"{self.folder_path}{self.title}.png")
+        plt.savefig(f"{self.folder_path}{self.index_specification}.png")
 
     def get_data(self):
-        df = pd.read_csv(f"{self.folder_path}{self.title}.csv", delimiter=r"\s\s+", engine="python")
+        df = pd.read_csv(f"{self.folder_path}{self.index_specification}.csv", delimiter=r"\s\s+", engine="python")
         df = df.query("NAME != 'NAME'")  # remove headers
         columns = df.columns.tolist()  # change name of timestamp
         columns[0] = "TIMESTAMP"
@@ -174,11 +181,11 @@ class DockerMemoryLogger:
         }
 
 
-if __name__ == "__main__":
-    dm = DockerMemoryLogger(title="wet_run_test", overwrite_logs=False)
-    dm.set_begin_benchmarking()
-    dm.stop_logging()
-    dm.make_plots()
+# if __name__ == "__main__":
+#     dm = DockerMemoryLogger(index_specification="wet_run_test", overwrite_logs=False)
+#     dm.set_begin_benchmarking()
+#     dm.stop_logging()
+#     dm.make_plots()
 
 
 # meow meow

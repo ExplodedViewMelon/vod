@@ -145,6 +145,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         skip_setup: bool = False,
         free_resources: bool = False,
         serve_on_gpu: bool = False,
+        run_as_docker_image: bool = True,
     ):
         super().__init__(skip_setup=skip_setup, free_resources=free_resources)
         self.vectors = vectors
@@ -155,7 +156,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             port = find_available_port()
         self.port = port
         self.serve_on_gpu = serve_on_gpu
-
+        self.run_as_docker_image = run_as_docker_image
         self._build_index()
 
     def _make_env(self) -> dict[str, str]:
@@ -170,53 +171,42 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             os.environ["PYTHONPATH"] = f"{os.environ['PYTHONPATH']}:{Path.cwd()}"
         return env
 
-    # def _make_cmd(self) -> list[str]:
-    #     executable_path = sys.executable  # TODO also pass ef_search
-    #     return [
-    #         str(executable_path),
-    #         str(server_run_path),
-    #         "--index-path",
-    #         str(self.index_path),
-    #         "--nprobe",
-    #         str(self.index_parameters.index_type.n_probe) if isinstance(self.index_parameters.index_type, IVF) else "0",
-    #         "--host",
-    #         str(self.host),
-    #         "--port",
-    #         str(self.port),
-    #         "--logging-level",
-    #         str(self.logging_level),
-    #         *(["--serve-on-gpu"] if self.serve_on_gpu else []),
-    #     ]
     def _make_cmd(self) -> list[str]:
-        # TODO: toggle whether to use a docker image or just a gunicorn app.
-        # DOCKERIZED
         executable_path = sys.executable  # TODO also pass ef_search
-        print("RUNNING FAISS SERVER IN DOCKER")
-        print("content of temp folder, to be copied into docker:")
-        folder_path = self.tmpdir.name
-        file_list = os.listdir(folder_path)
-        for file_name in file_list:
-            print(file_name)
-
-        return [
-            "docker",
-            "run",
-            "-p",
-            f"{self.port}:{self.port}",
-            "-v",
-            f"{self.tmpdir.name}:/vod/faiss_index",
-            "-t",
-            "faiss_server",
-            # "--nprobe",
-            # str(self.index_parameters.index_type.n_probe) if isinstance(self.index_parameters.index_type, IVF) else "0",
-            # "--host",
-            # str(self.host),
-            # "--port",
-            # str(self.port),
-            # "--logging-level",
-            # str(self.logging_level),
-            # *(["--serve-on-gpu"] if self.serve_on_gpu else []),
-        ]
+        if self.run_as_docker_image:
+            return [
+                "docker",
+                "run",
+                "--name",
+                "faiss-server",
+                "--rm",
+                "-p",
+                f"{self.port}:{self.port}",
+                "-v",
+                f"{self.tmpdir.name}:/vod/faiss_index",
+                "-t",
+                "faiss_server",
+            ]
+        else:
+            return [
+                str(executable_path),
+                str(server_run_path),
+                "--index-path",
+                str(self.index_path),
+                "--nprobe",
+                (
+                    str(self.index_parameters.index_type.n_probe)
+                    if isinstance(self.index_parameters.index_type, IVF)
+                    else "0"
+                ),
+                "--host",
+                str(self.host),
+                "--port",
+                str(self.port),
+                "--logging-level",
+                str(self.logging_level),
+                *(["--serve-on-gpu"] if self.serve_on_gpu else []),
+            ]
 
     def get_client(self) -> FaissClient:
         """Get the client for interacting with the Faiss server."""

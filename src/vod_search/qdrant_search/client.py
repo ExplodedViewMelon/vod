@@ -247,6 +247,9 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         return [
             "docker",
             "run",
+            "--name",
+            "qdrant-server",
+            "--rm",
             "-p",
             f"{self._port}:{self._port}",
             "-p",
