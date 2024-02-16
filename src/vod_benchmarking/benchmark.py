@@ -55,8 +55,8 @@ _SearchMasters = [
 
 preprocessings = [
     None,  # Remember this one!
-    ProductQuantization(m=8),  # must be divisible with n_dimensions
-    ScalarQuantization(n=8),
+    # ProductQuantization(m=8),  # must be divisible with n_dimensions
+    # ScalarQuantization(n=8),
 ]
 
 index_types = [

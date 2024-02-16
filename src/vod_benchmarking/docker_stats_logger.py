@@ -141,12 +141,13 @@ class DockerMemoryLogger:
     def get_data(self):
         df = pd.read_csv(f"{self.folder_path}{self.index_specification}.csv", delimiter=r"\s\s+", engine="python")
         df = df.query("NAME != 'NAME'")  # remove headers
+        df = df.query("NAME != '0.00%'")  # remove headers
         columns = df.columns.tolist()  # change name of timestamp
         columns[0] = "TIMESTAMP"
         df.columns = columns
         df.TIMESTAMP = pd.to_datetime(df.TIMESTAMP)  # change type to datetime
         # df.TIMESTAMP = df.TIMESTAMP + pd.Timedelta(hours=1) # NOTE fixes the problem on mac.
-        df = df.query("NAME.str.split('-')[0] == @self.searchMasterName")
+        # df = df.query("NAME.str.split('-')[0] == @self.searchMasterName")
 
         def convert_memory_usage(s):
             if "KiB" in s:
