@@ -146,9 +146,10 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         free_resources: bool = False,
         serve_on_gpu: bool = False,
         run_as_docker_image: bool = True,
+        num_batches: int = 1000,
     ):
         super().__init__(skip_setup=skip_setup, free_resources=free_resources)
-        self.vectors = vectors
+        self.vectors: np.ndarray = vectors
         self.index_parameters = index_parameters
         self.logging_level = logging_level
         self.host = host
@@ -157,6 +158,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         self.port = port
         self.serve_on_gpu = serve_on_gpu
         self.run_as_docker_image = run_as_docker_image
+        self.num_batches = num_batches
         self._build_index()
 
     def _make_env(self) -> dict[str, str]:
@@ -257,9 +259,17 @@ class FaissMaster(base.SearchMaster[FaissClient]):
 
         # index.add(self.vectors)
 
+        # batch size should be at least as large as number of clusters in IVF
+        if isinstance(self.index_parameters.index_type, IVF):
+            batch_size = self.vectors.shape[0] // self.num_batches
+            min_batch_size = self.index_parameters.index_type.n_partition * 40  #  * 10  # this seems to be optimal
+            if min_batch_size > batch_size:
+                self.num_batches = self.vectors.shape[0] // min_batch_size
+
         index = faiss_search.build_faiss_index(  # valentin's code
             vectors=self.vectors,
             factory_string=factory_string,
+            train_size=self.vectors.shape[0] // self.num_batches,  # 100 batches
             ef_construction=(
                 self.index_parameters.index_type.ef_construction
                 if isinstance(self.index_parameters.index_type, HNSW)

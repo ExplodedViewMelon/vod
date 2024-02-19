@@ -97,3 +97,17 @@ class DatasetSift1M(DatasetHDF5Simple):
 #     # test
 #     dataset = DatasetSift1M()
 #     print(dataset.vectors.shape)
+
+
+class DatasetGIST(DatasetHDF5Simple):
+    """Dataset of size (~1_000_000, `960`) at ~3.5GB"""
+
+    @property
+    def name(self):
+        return "gist-960-euclidean"
+
+
+# if __name__ == "__main__":
+#     # test
+#     dataset = DatasetSift1M()
+#     print(dataset.vectors.shape)

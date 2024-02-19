@@ -72,10 +72,23 @@ def _build_faiss_index_on_cpu(
     if train_size is None:
         train_size = len(vectors)
 
+    done_ingesting: bool = False
     for i in track(
         range(0, len(vectors), train_size),
         description=f"Faiss: Ingesting {pretty.human_format_nb(len(vectors))} vectors",
     ):
+        if done_ingesting:
+            # stop ingestion after progress bar has updated to 100%
+            break
+
+        # if second last run, ingest the remaining vectors
+        index_start_of_next_batch = i + train_size
+        index_end_of_next_batch = index_start_of_next_batch + train_size
+        num_vectors = len(vectors)
+        if index_end_of_next_batch >= num_vectors:
+            train_size = num_vectors - i  # ingest the rest of the vectors
+            done_ingesting = True
+
         batch = vt.slice_arrays_sequence(vectors, slice(i, i + train_size))
         batch = np.asarray(batch).astype(np.float32)
 
@@ -88,7 +101,7 @@ def _build_faiss_index_on_cpu(
     if index.ntotal != len(vectors) or index.d != vector_size:
         raise ValueError(
             f"Index size doesn't match the size of the vectors."
-            f"Found vectors: `{vector_size}`, index: `{index.ntotal, index.d}`"
+            f"Found vectors: `{vector_shape}`, index: `{index.ntotal, index.d}`"
         )
 
     return index

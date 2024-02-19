@@ -23,7 +23,7 @@ from time import perf_counter, sleep
 from rich.progress import track
 import pandas as pd
 from vod_search import milvus_search, faiss_search, qdrant_search
-from vod_benchmarking import DatasetGlove, DatasetLastFM, DatasetSift1M, DatasetHDF5Simple
+from vod_benchmarking import DatasetGlove, DatasetLastFM, DatasetSift1M, DatasetHDF5Simple, DatasetGIST
 import os
 from vod_search.models import HNSW, IVF, ScalarQuantization, ProductQuantization
 from vod_benchmarking import DockerMemoryLogger
@@ -48,22 +48,32 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 # HYPERPARAMETERS
 
 _SearchMasters = [
-    qdrant_search.QdrantSearchMaster,
-    milvus_search.MilvusSearchMaster,
+    # qdrant_search.QdrantSearchMaster,
+    # milvus_search.MilvusSearchMaster,
     faiss_search.FaissMaster,
 ]
 
 preprocessings = [
     None,  # Remember this one!
-    # ProductQuantization(m=8),  # must be divisible with n_dimensions
-    # ScalarQuantization(n=8),
+    ProductQuantization(m=8),  # must be divisible with n_dimensions
+    ScalarQuantization(n=8),
 ]
 
 index_types = [
-    IVF(n_partition=100, n_probe=100),
-    # IVF(n_partition=1000, n_probe=100),
-    # IVF(n_partition=10000, n_probe=100),
-    HNSW(M=16, ef_construction=128, ef_search=128),
+    # 1/10th
+    # IVF(n_partition=100, n_probe=10),
+    # IVF(n_partition=200, n_probe=20),
+    # IVF(n_partition=400, n_probe=40),
+    # IVF(n_partition=800, n_probe=80),
+    # IVF(n_partition=1600, n_probe=160),
+    # 1/100th
+    IVF(n_partition=100, n_probe=5),
+    IVF(n_partition=200, n_probe=10),
+    IVF(n_partition=400, n_probe=20),
+    IVF(n_partition=800, n_probe=40),
+    IVF(n_partition=1600, n_probe=80),
+    # # misc
+    # HNSW(M=16, ef_construction=128, ef_search=128),
     # HNSW(M=32, ef_construction=128, ef_search=128),
     # HNSW(M=64, ef_construction=128, ef_search=128),
 ]
@@ -73,8 +83,28 @@ metrics = [
 ]
 
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M, DatasetGlove, DatasetLastFM]
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
+datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
+
+# steadiness test
+preprocessings = [None]
+index_types = [
+    IVF(n_partition=800, n_probe=40),
+    IVF(n_partition=800, n_probe=40),
+    IVF(n_partition=800, n_probe=40),
+    IVF(n_partition=800, n_probe=40),
+    IVF(n_partition=800, n_probe=40),
+]
+metrics = ["DOT"]
 datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
-# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # largest
+
+# # SINGLE TEST FOR DEBUGGING
+# preprocessings = [None]
+# index_types = [IVF(n_partition=800, n_probe=40)]
+# metrics = ["DOT"]
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
+
 
 top_k = 100
 n_trials = 300
@@ -87,8 +117,6 @@ index_specifications = create_index_parameters(preprocessings, index_types, metr
 
 # timers
 benchmarkTimer = Timer()
-masterTimer = Timer()
-searchTimer = Timer()
 
 # lists
 benchmark_results = []
@@ -126,11 +154,11 @@ for dataset_class in datasets_classes:
         # get search master name
         searchMasterName: str = "UnknownIndex"
         if _SearchMaster == qdrant_search.QdrantSearchMaster:
-            searchMasterName = "Qdrant"
+            searchMasterName = "qdrant"
         elif _SearchMaster == faiss_search.FaissMaster:
-            searchMasterName = "Faiss"
+            searchMasterName = "faiss"
         elif _SearchMaster == milvus_search.MilvusSearchMaster:
-            searchMasterName = "Milvus"
+            searchMasterName = "milvus"
 
         for index_specification in index_specifications:
             benchmark_counter += 1
@@ -144,6 +172,7 @@ for dataset_class in datasets_classes:
                 dockerMemoryLogger = DockerMemoryLogger(
                     timestamp=TIMESTAMP, index_specification=f"{index_specification}", searchMasterName=searchMasterName
                 )
+                masterTimer = Timer()
                 masterTimer.begin()
                 dockerMemoryLogger.set_begin_ingesting()
 
@@ -170,6 +199,7 @@ for dataset_class in datasets_classes:
 
                     # start benchmarking
                     dockerMemoryLogger.set_begin_benchmarking()
+                    searchTimer = Timer()
                     for trial in track(range(n_trials), description=f"Benchmarking"):
                         # get search results
                         searchTimer.begin()

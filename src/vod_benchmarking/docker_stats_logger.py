@@ -147,7 +147,6 @@ class DockerMemoryLogger:
         df.columns = columns
         df.TIMESTAMP = pd.to_datetime(df.TIMESTAMP)  # change type to datetime
         # df.TIMESTAMP = df.TIMESTAMP + pd.Timedelta(hours=1) # NOTE fixes the problem on mac.
-        # df = df.query("NAME.str.split('-')[0] == @self.searchMasterName")
 
         def convert_memory_usage(s):
             if "KiB" in s:
@@ -164,6 +163,11 @@ class DockerMemoryLogger:
 
     def get_statistics(self) -> dict[str, float]:
         df = self.get_data()
+
+        # only measure the memory consumption of the process that we are benchmark
+        df = df[df["NAME"].str.split("-").str[0] == self.searchMasterName]
+        assert len(df), "docker memory logger has no entries"
+
         # get cummulative of each process, if multiple
         df = df.groupby("TIMESTAMP").sum()
 
