@@ -87,23 +87,29 @@ metrics = [
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
 datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
 
-# steadiness test
-preprocessings = [None]
-index_types = [
-    IVF(n_partition=800, n_probe=40),
-    IVF(n_partition=800, n_probe=40),
-    IVF(n_partition=800, n_probe=40),
-    IVF(n_partition=800, n_probe=40),
-    IVF(n_partition=800, n_probe=40),
-]
-metrics = ["DOT"]
-datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
-
-# # SINGLE TEST FOR DEBUGGING
+# # steadiness test
 # preprocessings = [None]
-# index_types = [IVF(n_partition=800, n_probe=40)]
+# index_types = [
+#     IVF(n_partition=800, n_probe=40),
+#     IVF(n_partition=800, n_probe=40),
+#     IVF(n_partition=800, n_probe=40),
+#     IVF(n_partition=800, n_probe=40),
+#     IVF(n_partition=800, n_probe=40),
+# ]
 # metrics = ["DOT"]
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
+
+# single test for sanity checking GIST (should have recall 1.0)
+_SearchMasters = [
+    # qdrant_search.QdrantSearchMaster,
+    # milvus_search.MilvusSearchMaster,
+    faiss_search.FaissMaster,
+]
+preprocessings = [None]
+index_types = [IVF(n_partition=100, n_probe=100)]
+metrics = ["DOT"]
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
+datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 
 
 top_k = 100
@@ -111,7 +117,7 @@ n_trials = 300
 n_warmup = n_trials // 5
 n_query_vectors = n_warmup + n_trials
 query_batch_size = 10
-TIMEOUT_INDEX_BUILD = 60 * 10  # seconds
+TIMEOUT_INDEX_BUILD = 60 * 15  # seconds
 
 index_specifications = create_index_parameters(preprocessings, index_types, metrics)
 
@@ -256,7 +262,7 @@ for dataset_class in datasets_classes:
                 benchmark_results.append(
                     {
                         "Dataset": dataset.__repr__() if dataset else "None",
-                        "Index": master.__repr__() if master else f"{searchMasterName} {index_specification}",
+                        "Index": master.__repr__() if master else f"index: {searchMasterName} {index_specification}",
                         "Index parameters.": f"error: {tb}",
                         "Server startup speed (s)": -1,
                         "Index build speed (s)": -1,
