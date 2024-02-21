@@ -48,9 +48,9 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 # HYPERPARAMETERS
 
 _SearchMasters = [
-    milvus_search.MilvusSearchMaster,
-    qdrant_search.QdrantSearchMaster,
     faiss_search.FaissMaster,
+    qdrant_search.QdrantSearchMaster,
+    milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
@@ -68,7 +68,7 @@ index_types = [
     # IVF(n_partition=1600, n_probe=160),
     # 1/100th
     # IVF(n_partition=100, n_probe=100),
-    IVF(n_partition=200, n_probe=10),
+    # IVF(n_partition=200, n_probe=10),
     # IVF(n_partition=400, n_probe=20),
     # IVF(n_partition=800, n_probe=40),
     # IVF(n_partition=1600, n_probe=80),
