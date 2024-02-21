@@ -55,8 +55,8 @@ _SearchMasters = [
 
 preprocessings = [
     None,  # Remember this one!
-    # ProductQuantization(m=8),  # must be divisible with n_dimensions
-    # ScalarQuantization(n=8),
+    ProductQuantization(m=8),  # must be divisible with n_dimensions
+    ScalarQuantization(n=8),
 ]
 
 index_types = [
@@ -74,8 +74,11 @@ index_types = [
     # IVF(n_partition=1600, n_probe=80),
     # # misc
     HNSW(M=16, ef_construction=128, ef_search=128),
-    # HNSW(M=32, ef_construction=128, ef_search=128),
-    # HNSW(M=64, ef_construction=128, ef_search=128),
+    HNSW(M=32, ef_construction=128, ef_search=128),
+    HNSW(M=64, ef_construction=128, ef_search=128),
+    HNSW(M=16, ef_construction=256, ef_search=128),
+    HNSW(M=32, ef_construction=256, ef_search=128),
+    HNSW(M=64, ef_construction=256, ef_search=128),
 ]
 metrics = [
     "L2",
@@ -86,7 +89,7 @@ datasets_classes: list[Type[DatasetHDF5Simple]] = [
     DatasetSift1M,
     # DatasetGlove, # the angular one
     # DatasetLastFM,
-    # DatasetGIST,
+    DatasetGIST,
 ]  # all of them
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
