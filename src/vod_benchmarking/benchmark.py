@@ -49,14 +49,14 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 _SearchMasters = [
     milvus_search.MilvusSearchMaster,
-    # qdrant_search.QdrantSearchMaster,
+    qdrant_search.QdrantSearchMaster,
     faiss_search.FaissMaster,
 ]
 
 preprocessings = [
     None,  # Remember this one!
-    ProductQuantization(m=8),  # must be divisible with n_dimensions
-    ScalarQuantization(n=8),
+    # ProductQuantization(m=8),  # must be divisible with n_dimensions
+    # ScalarQuantization(n=8),
 ]
 
 index_types = [
@@ -67,13 +67,13 @@ index_types = [
     # IVF(n_partition=800, n_probe=80),
     # IVF(n_partition=1600, n_probe=160),
     # 1/100th
-    IVF(n_partition=100, n_probe=100),
+    # IVF(n_partition=100, n_probe=100),
     IVF(n_partition=200, n_probe=10),
-    IVF(n_partition=400, n_probe=20),
-    IVF(n_partition=800, n_probe=40),
-    IVF(n_partition=1600, n_probe=80),
+    # IVF(n_partition=400, n_probe=20),
+    # IVF(n_partition=800, n_probe=40),
+    # IVF(n_partition=1600, n_probe=80),
     # # misc
-    # HNSW(M=16, ef_construction=128, ef_search=128),
+    HNSW(M=16, ef_construction=128, ef_search=128),
     # HNSW(M=32, ef_construction=128, ef_search=128),
     # HNSW(M=64, ef_construction=128, ef_search=128),
 ]
@@ -86,7 +86,7 @@ datasets_classes: list[Type[DatasetHDF5Simple]] = [
     DatasetSift1M,
     # DatasetGlove, # the angular one
     # DatasetLastFM,
-    DatasetGIST,
+    # DatasetGIST,
 ]  # all of them
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
