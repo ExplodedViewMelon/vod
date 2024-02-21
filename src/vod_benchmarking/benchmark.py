@@ -48,8 +48,8 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 # HYPERPARAMETERS
 
 _SearchMasters = [
+    milvus_search.MilvusSearchMaster,
     # qdrant_search.QdrantSearchMaster,
-    # milvus_search.MilvusSearchMaster,
     faiss_search.FaissMaster,
 ]
 
@@ -67,7 +67,7 @@ index_types = [
     # IVF(n_partition=800, n_probe=80),
     # IVF(n_partition=1600, n_probe=160),
     # 1/100th
-    IVF(n_partition=100, n_probe=5),
+    IVF(n_partition=100, n_probe=100),
     IVF(n_partition=200, n_probe=10),
     IVF(n_partition=400, n_probe=20),
     IVF(n_partition=800, n_probe=40),
@@ -78,14 +78,19 @@ index_types = [
     # HNSW(M=64, ef_construction=128, ef_search=128),
 ]
 metrics = [
-    # "L2",
-    "DOT",
+    "L2",
+    # "DOT",
 ]
 
-# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M, DatasetGlove, DatasetLastFM]
+datasets_classes: list[Type[DatasetHDF5Simple]] = [
+    DatasetSift1M,
+    # DatasetGlove, # the angular one
+    # DatasetLastFM,
+    DatasetGIST,
+]  # all of them
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
-datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
 
 # # steadiness test
 # preprocessings = [None]
@@ -99,24 +104,24 @@ datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
 # metrics = ["DOT"]
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 
-# single test for sanity checking GIST (should have recall 1.0)
-_SearchMasters = [
-    # qdrant_search.QdrantSearchMaster,
-    # milvus_search.MilvusSearchMaster,
-    faiss_search.FaissMaster,
-]
-preprocessings = [None]
-index_types = [IVF(n_partition=100, n_probe=100)]
-metrics = ["DOT"]
-# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
-datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
+# # single test for sanity checking GIST (should have recall 1.0)
+# _SearchMasters = [
+#     # qdrant_search.QdrantSearchMaster,
+#     milvus_search.MilvusSearchMaster,
+#     faiss_search.FaissMaster,
+# ]
+# preprocessings = [None]
+# index_types = [IVF(n_partition=100, n_probe=100)]
+# metrics = ["DOT"]
+# # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
+# datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 
 
 top_k = 100
-n_trials = 300
+n_trials = 10
 n_warmup = n_trials // 5
 n_query_vectors = n_warmup + n_trials
-query_batch_size = 10
+query_batch_size = 1000
 TIMEOUT_INDEX_BUILD = 60 * 15  # seconds
 
 index_specifications = create_index_parameters(preprocessings, index_types, metrics)
@@ -133,6 +138,7 @@ tb = ""
 
 print("Stopping all docker containers preemptively")
 stop_docker_containers()
+# clear_milvus_buckets()
 
 number_of_benchmarks = len(datasets_classes) * len(_SearchMasters) * len(index_specifications)
 print(f"Running {number_of_benchmarks} benchmarks in total.")

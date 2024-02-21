@@ -24,6 +24,7 @@ from pymilvus import (
     CollectionSchema,
     DataType,
     Collection,
+    list_collections,
 )
 from loguru import logger
 from typing import Any, Iterable, Optional
@@ -171,6 +172,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         """Connect to server and build index"""
         connections.connect("default", host=self.host, port=self.port)
         self._delete_existing_collection()
+        self._clear_milvus_buckets()
         self._build_index()
 
     def _on_exit(self) -> None:
@@ -182,7 +184,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         self.force_quit_docker()
 
     def force_quit_docker(self):
-        subprocess.run(["docker", "compose", "down"], env=self._make_env())
+        subprocess.run(["docker", "compose", "down", "-v"], env=self._make_env())
 
     def get_client(self) -> MilvusSearchClient:
         return MilvusSearchClient(host=self.host, port=self.port, master=self, collection=self.collection)
@@ -199,6 +201,12 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         if utility.has_collection("index_name"):
             logger.info("Collection already exists, deleting.")
             utility.drop_collection("index_name")
+
+    def _clear_milvus_buckets(self):
+        for collection_name in list_collections():
+            collection = Collection(name=collection_name)
+            print("Deleting existing bucket", collection_name)
+            collection.drop()
 
     def _make_index_parameters(self):
         preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing

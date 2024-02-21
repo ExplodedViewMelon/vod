@@ -3,7 +3,13 @@ cd vod
 git checkout Vector-database-benchmark
 git pull
 
-# Get poetry
+# install homebrew - remember to add to path
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# install python 3.11
+brew install python@3.11
+
+# Get poetry - remember to add to path
 curl -sSL https://install.python-poetry.org | python3 -
 poetry install
 
@@ -21,3 +27,12 @@ echo \
 # Install Docker engine
 sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io
+
+# last, make sure that you have permissions to docker
+sudo usermod -aG docker $USER
+
+# build faiss server image
+docker build -t faiss_server -f Dockerfile .
+
+# and build qdrant image
+docker pull qdrant/qdrant

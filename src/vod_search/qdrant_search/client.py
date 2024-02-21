@@ -433,6 +433,8 @@ def _make_index_parameters(dim: int, index_parameters: IndexParameters):
         distance_metric = qdrm.Distance.COSINE
     elif index_parameters.metric == "DOT":
         distance_metric = qdrm.Distance.DOT
+    elif index_parameters.metric == "IP":
+        distance_metric = qdrm.Distance.DOT
 
     if isinstance(index_parameters.preprocessing, ScalarQuantization):
         quantization_config = qdrm.ScalarQuantization(

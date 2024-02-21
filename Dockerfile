@@ -19,6 +19,7 @@ ENV PYTHONPATH="/vod/src"
 RUN pip install -r requirements.txt
 RUN pip install h5py
 RUN pip install pymilvus
+RUN pip install scikit-learn
 
 # copy all the code
 ADD ./src ./vod/src
