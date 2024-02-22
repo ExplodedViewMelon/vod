@@ -73,12 +73,17 @@ index_types = [
     # IVF(n_partition=800, n_probe=40),
     # IVF(n_partition=1600, n_probe=80),
     # # misc
-    HNSW(M=16, ef_construction=128, ef_search=128),
-    HNSW(M=32, ef_construction=128, ef_search=128),
-    HNSW(M=64, ef_construction=128, ef_search=128),
-    HNSW(M=16, ef_construction=256, ef_search=128),
-    HNSW(M=32, ef_construction=256, ef_search=128),
-    HNSW(M=64, ef_construction=256, ef_search=128),
+    # HNSW(M=16, ef_construction=128, ef_search=128),
+    # HNSW(M=32, ef_construction=128, ef_search=128),
+    # HNSW(M=64, ef_construction=128, ef_search=128),
+    HNSW(M=8, ef_construction=400, ef_search=200),
+    HNSW(M=16, ef_construction=400, ef_search=200),
+    HNSW(M=32, ef_construction=400, ef_search=200),
+    #
+    HNSW(M=16, ef_construction=200, ef_search=200),
+    HNSW(M=16, ef_construction=400, ef_search=200),
+    HNSW(M=16, ef_construction=800, ef_search=200),
+    HNSW(M=16, ef_construction=1600, ef_search=200),
 ]
 metrics = [
     "L2",
@@ -88,8 +93,8 @@ metrics = [
 datasets_classes: list[Type[DatasetHDF5Simple]] = [
     DatasetSift1M,
     # DatasetGlove, # the angular one
-    # DatasetLastFM,
-    DatasetGIST,
+    DatasetLastFM,
+    # DatasetGIST,
 ]  # all of them
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
