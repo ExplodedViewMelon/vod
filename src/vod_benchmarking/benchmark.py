@@ -55,8 +55,8 @@ _SearchMasters = [
 
 preprocessings = [
     None,  # Remember this one!
-    ProductQuantization(m=8),  # must be divisible with n_dimensions
-    ScalarQuantization(n=8),
+    # ProductQuantization(m=8),  # must be divisible with n_dimensions
+    # ScalarQuantization(n=8),
 ]
 
 index_types = [
@@ -76,14 +76,23 @@ index_types = [
     # HNSW(M=16, ef_construction=128, ef_search=128),
     # HNSW(M=32, ef_construction=128, ef_search=128),
     # HNSW(M=64, ef_construction=128, ef_search=128),
-    HNSW(M=8, ef_construction=400, ef_search=200),
-    HNSW(M=16, ef_construction=400, ef_search=200),
-    HNSW(M=32, ef_construction=400, ef_search=200),
+    #
+    HNSW(M=8, ef_construction=400, ef_search=100),
+    HNSW(M=16, ef_construction=400, ef_search=100),
+    HNSW(M=32, ef_construction=400, ef_search=100),
+    HNSW(M=64, ef_construction=400, ef_search=100),
+    #
+    HNSW(M=16, ef_construction=200, ef_search=100),
+    HNSW(M=16, ef_construction=400, ef_search=100),
+    HNSW(M=16, ef_construction=800, ef_search=100),
+    HNSW(M=16, ef_construction=1600, ef_search=100),
+    HNSW(M=16, ef_construction=3200, ef_search=100),
     #
     HNSW(M=16, ef_construction=200, ef_search=200),
     HNSW(M=16, ef_construction=400, ef_search=200),
     HNSW(M=16, ef_construction=800, ef_search=200),
     HNSW(M=16, ef_construction=1600, ef_search=200),
+    HNSW(M=16, ef_construction=3200, ef_search=200),
 ]
 metrics = [
     "L2",
@@ -93,8 +102,8 @@ metrics = [
 datasets_classes: list[Type[DatasetHDF5Simple]] = [
     DatasetSift1M,
     # DatasetGlove, # the angular one
-    DatasetLastFM,
-    # DatasetGIST,
+    # DatasetLastFM,
+    DatasetGIST,
 ]  # all of them
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
