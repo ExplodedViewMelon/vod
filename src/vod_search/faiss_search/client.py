@@ -235,7 +235,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
 
         if isinstance(index_type, IVF):  # TODO move n_probe to search
             if isinstance(preprocessing, ProductQuantization):
-                # return f"IVF{index_type.n_partition},PQ{preprocessing.m}x{preprocessing.n_bits}" # this does work but nbits are temp. dropped.
+                # return f"IVF{index_type.n_partition},PQ{preprocessing.m}x{preprocessing.n_bits}" # this does work
                 return f"IVF{index_type.n_partition},PQ{preprocessing.m}"
             elif isinstance(preprocessing, ScalarQuantization):
                 return f"IVF{index_type.n_partition},SQ{preprocessing.n}"
@@ -250,8 +250,6 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             else:  # preprocessing is None
                 return f"HNSW{index_type.M},Flat"
 
-            # TODO include ef_construction and ef_search.
-
     def _build_index(self) -> None:
         self.timerBuildIndex.begin()
         factory_string = self._get_factory_string()
@@ -260,10 +258,13 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         # index.add(self.vectors)
 
         # batch size should be at least as large as number of clusters in IVF
+        # and preferably around 40 times larger
         if isinstance(self.index_parameters.index_type, IVF):
             batch_size = self.vectors.shape[0] // self.num_batches
             min_batch_size = self.index_parameters.index_type.n_partition * 40  #  * 10  # this seems to be optimal
             if min_batch_size > batch_size:
+                print("(faiss) Changing batch size for optimizating IVF index construction")
+                print("From", batch_size, "to", min_batch_size)
                 self.num_batches = self.vectors.shape[0] // min_batch_size
 
         index = faiss_search.build_faiss_index(  # valentin's code
@@ -279,6 +280,11 @@ class FaissMaster(base.SearchMaster[FaissClient]):
 
         if isinstance(self.index_parameters.index_type, HNSW):
             index.hnsw.efSearch = self.index_parameters.index_type.ef_search  # type: ignore
+
+        if self.index_parameters.metric == "DOT":
+            index.metric_type = faiss.METRIC_INNER_PRODUCT
+        else:
+            index.metric_type = faiss.METRIC_L2
 
         self.tmpdir = tempfile.TemporaryDirectory()
         self.index_path = f"{self.tmpdir.name}/index.faiss"

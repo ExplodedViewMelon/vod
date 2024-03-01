@@ -49,8 +49,8 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 _SearchMasters = [
     faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
-    milvus_search.MilvusSearchMaster,
+    # qdrant_search.QdrantSearchMaster,
+    # milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
@@ -61,11 +61,11 @@ preprocessings = [
 
 index_types = [
     # 1/10th
-    # IVF(n_partition=100, n_probe=10),
-    # IVF(n_partition=200, n_probe=20),
-    # IVF(n_partition=400, n_probe=40),
-    # IVF(n_partition=800, n_probe=80),
-    # IVF(n_partition=1600, n_probe=160),
+    # IVF(n_partition=64, n_probe=10),
+    # IVF(n_partition=128, n_probe=20),
+    # IVF(n_partition=256, n_probe=40),
+    IVF(n_partition=512, n_probe=80),
+    # IVF(n_partition=1024, n_probe=160),
     # 1/100th
     # IVF(n_partition=100, n_probe=100),
     # IVF(n_partition=200, n_probe=10),
@@ -76,35 +76,37 @@ index_types = [
     # HNSW(M=16, ef_construction=128, ef_search=128),
     # HNSW(M=32, ef_construction=128, ef_search=128),
     # HNSW(M=64, ef_construction=128, ef_search=128),
-    #
-    HNSW(M=8, ef_construction=400, ef_search=100),
-    HNSW(M=16, ef_construction=400, ef_search=100),
-    HNSW(M=32, ef_construction=400, ef_search=100),
-    HNSW(M=64, ef_construction=400, ef_search=100),
-    #
-    HNSW(M=16, ef_construction=200, ef_search=100),
-    HNSW(M=16, ef_construction=400, ef_search=100),
-    HNSW(M=16, ef_construction=800, ef_search=100),
-    HNSW(M=16, ef_construction=1600, ef_search=100),
-    HNSW(M=16, ef_construction=3200, ef_search=100),
-    #
-    HNSW(M=16, ef_construction=200, ef_search=200),
-    HNSW(M=16, ef_construction=400, ef_search=200),
-    HNSW(M=16, ef_construction=800, ef_search=200),
-    HNSW(M=16, ef_construction=1600, ef_search=200),
-    HNSW(M=16, ef_construction=3200, ef_search=200),
+    # # HNSW TEST
+    # #
+    # HNSW(M=8, ef_construction=400, ef_search=100),
+    # HNSW(M=16, ef_construction=400, ef_search=100),
+    # HNSW(M=32, ef_construction=400, ef_search=100),
+    # HNSW(M=64, ef_construction=400, ef_search=100),
+    # #
+    # HNSW(M=16, ef_construction=200, ef_search=100),
+    # HNSW(M=16, ef_construction=400, ef_search=100),
+    # HNSW(M=16, ef_construction=800, ef_search=100),
+    # HNSW(M=16, ef_construction=1600, ef_search=100),
+    # HNSW(M=16, ef_construction=3200, ef_search=100),
+    # #
+    # HNSW(M=16, ef_construction=200, ef_search=200),
+    # HNSW(M=16, ef_construction=400, ef_search=200),
+    # HNSW(M=16, ef_construction=800, ef_search=200),
+    # HNSW(M=16, ef_construction=1600, ef_search=200),
+    # HNSW(M=16, ef_construction=3200, ef_search=200),
 ]
 metrics = [
     "L2",
-    # "DOT",
+    "DOT",
 ]
 
 datasets_classes: list[Type[DatasetHDF5Simple]] = [
     DatasetSift1M,
-    # DatasetGlove, # the angular one
+    DatasetGlove,  # the angular one
     # DatasetLastFM,
-    DatasetGIST,
+    # DatasetGIST,
 ]  # all of them
+
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetSift1M] # larger
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGIST]  # largest
@@ -139,7 +141,7 @@ n_trials = 10
 n_warmup = n_trials // 5
 n_query_vectors = n_warmup + n_trials
 query_batch_size = 1000
-TIMEOUT_INDEX_BUILD = 60 * 15  # seconds
+TIMEOUT_INDEX_BUILD = 60 * 20  # seconds
 
 index_specifications = create_index_parameters(preprocessings, index_types, metrics)
 

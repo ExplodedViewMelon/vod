@@ -52,7 +52,7 @@ def timeout_handler(signum, frame):
 def stop_docker_containers():
     import subprocess
 
-    subprocess.run(["docker", "compose", "down"])
+    subprocess.run(["docker", "compose", "down", "-v"])
     subprocess.run(
         ["docker", "stop", *subprocess.run(["docker", "ps", "-aq"], capture_output=True, text=True).stdout.split()]
     )
