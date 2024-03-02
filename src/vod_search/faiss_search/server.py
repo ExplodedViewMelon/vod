@@ -43,6 +43,7 @@ def parse_args() -> argparse.Namespace:
 
 @app.post("/load_index")
 async def init_index() -> str:
+    global faiss_index
     """Initialize the index."""
     logger.info("Initializing index")
     logger.info(f"Does index exists? {os.path.exists(args.index_path)}")
