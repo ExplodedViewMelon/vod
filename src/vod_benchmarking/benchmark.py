@@ -60,9 +60,9 @@ _SearchMasters = [
 ]
 
 preprocessings = [
-    None,  # Remember this one!
+    # None,  # Remember this one!
     ProductQuantization(m=8),  # must be divisible with n_dimensions
-    ScalarQuantization(n=8),
+    # ScalarQuantization(n=8),
 ]
 
 index_types = [
@@ -80,9 +80,9 @@ index_types = [
     # IVF(n_partition=1600, n_probe=80),
     # # misc
     HNSW(M=8, ef_construction=256, ef_search=32),
-    HNSW(M=16, ef_construction=256, ef_search=32),
-    HNSW(M=8, ef_construction=256, ef_search=128),
-    HNSW(M=16, ef_construction=256, ef_search=128),
+    # HNSW(M=16, ef_construction=256, ef_search=32),
+    # HNSW(M=8, ef_construction=256, ef_search=128),
+    # HNSW(M=16, ef_construction=256, ef_search=128),
     # HNSW(M=32, ef_construction=256, ef_search=128),
     # HNSW(M=64, ef_construction=256, ef_search=128),
     # # HNSW TEST
@@ -240,6 +240,7 @@ for dataset_class in datasets_classes:
                     recalls_at_1 = []
                     recalls_at_10 = []
                     recalls_at_100 = []
+                    recalls_at_1000 = []
 
                     client = master.get_client()
 
@@ -275,6 +276,9 @@ for dataset_class in datasets_classes:
                         recalls_at_100.append(
                             recall_at_k(pred_indices, true_indices, 100)
                         )
+                        recalls_at_1000.append(
+                            recall_at_k(pred_indices, true_indices, 1000)
+                        )
 
                     # stop logging
                     dockerMemoryLogger.set_done_benchmarking()
@@ -302,6 +306,7 @@ for dataset_class in datasets_classes:
                             "RecallAt1Mean": np.mean(recalls_at_1),
                             "RecallAt10Mean": np.mean(recalls_at_10),
                             "RecallAt100Mean": np.mean(recalls_at_100),
+                            "RecallAt1000Mean": np.mean(recalls_at_1000),
                             **memory_statistics,
                         }
                     )
@@ -334,6 +339,7 @@ for dataset_class in datasets_classes:
                         "RecallAt1Mean": -1,
                         "RecallAt10Mean": -1,
                         "RecallAt100Mean": -1,
+                        "RecallAt1000Mean": -1,
                     }
                 )
 
