@@ -291,7 +291,7 @@ for dataset_class in datasets_classes:
                         {
                             "Dataset": dataset.__repr__(),
                             "Index": master.__repr__(),
-                            "IndexParameters.": f"{index_specification}",
+                            "IndexParameters": f"{index_specification}",
                             "timerMasterMean": masterTimer.mean,
                             "timerServerStartupMean": master.timerServerStartup.mean,
                             "timerBuildIndexMean": master.timerBuildIndex.mean,
@@ -323,7 +323,7 @@ for dataset_class in datasets_classes:
                             if master
                             else f"index: {searchMasterName} {index_specification}"
                         ),
-                        "Index parameters.": f"error: {tb}",
+                        "IndexParameters": f"error: {tb}",
                         "timerMasterMean": -1,
                         "timerServerStartupMean": -1,
                         "timerBuildIndexMean": -1,

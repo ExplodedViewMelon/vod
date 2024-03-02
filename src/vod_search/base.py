@@ -122,6 +122,7 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
             self.dockerMemoryLogger.set_begin_baseline()
             time.sleep(5)
             self.dockerMemoryLogger.set_done_baseline()
+            time.sleep(1)
         self._on_init()
 
     def __exit__(

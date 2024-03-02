@@ -41,6 +41,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+@app.post("/load_index")
 def init_index(arguments: argparse.Namespace) -> faiss.Index:
     """Initialize the index."""
     logger.info("Initializing index")
@@ -109,7 +110,9 @@ def run_faiss_server(host: str, port: int) -> None:
     """Start the API."""
     pattern = re.compile(r"^(http|https)://")
     host = re.sub(pattern, "", host)
-    uvicorn.run(app, host=host, port=port, workers=1, log_level=args.logging_level.lower())
+    uvicorn.run(
+        app, host=host, port=port, workers=1, log_level=args.logging_level.lower()
+    )
 
 
 def measure_memory(original_function):
