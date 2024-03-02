@@ -128,6 +128,6 @@ def measure_memory(original_function):
 
 args = parse_args()
 logger.info("Starting API")
-faiss_index = faiss.Index()  # dummy object
+faiss_index = faiss.Index  # dummy object
 # faiss_index = init_index(args) # build index from client command instead
 run_faiss_server(args.host, args.port)
