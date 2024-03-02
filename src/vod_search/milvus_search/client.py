@@ -146,7 +146,9 @@ def _search_batch_to_rdtypes(batch: SearchResult, top_k: int) -> vt.RetrievalBat
 class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
     """A class that manages a search server."""
 
-    _timeout: float = 30 * 60  # extended timeout to allow for downloading milvus docker image
+    _timeout: float = (
+        30 * 60
+    )  # extended timeout to allow for downloading milvus docker image
     # _allow_existing_server: bool = True
     _allow_existing_server: bool = False  # NOTE only disabled because of benchmarking
 
@@ -166,7 +168,10 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
 
         skip_setup = False
         self.force_quit_docker()
-        super().__init__(skip_setup)
+        super().__init__(
+            skip_setup,
+            dockerMemoryLogger=dockerMemoryLogger,
+        )
 
     def _on_init(self) -> None:
         """Connect to server and build index"""
@@ -187,7 +192,9 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         subprocess.run(["docker", "compose", "down", "-v"], env=self._make_env())
 
     def get_client(self) -> MilvusSearchClient:
-        return MilvusSearchClient(host=self.host, port=self.port, master=self, collection=self.collection)
+        return MilvusSearchClient(
+            host=self.host, port=self.port, master=self, collection=self.collection
+        )
 
     def _make_cmd(self) -> list[str]:
         return [
@@ -209,7 +216,9 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             collection.drop()
 
     def _make_index_parameters(self):
-        preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
+        preprocessing: None | ProductQuantization | ScalarQuantization = (
+            self.index_parameters.preprocessing
+        )
         index_type: HNSW | IVF = self.index_parameters.index_type
 
         if self.index_parameters.metric == "DOT":
@@ -266,14 +275,21 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         index_parameters = self._make_index_parameters()
 
         fields = [
-            FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
+            FieldSchema(
+                name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False
+            ),
             FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=D),
         ]
         schema = CollectionSchema(fields, "Milvus database - so far so good")
         # NOTE specifically setting number of shards to 1 to ensure fair benchmarking
-        collection = Collection("index_name", schema, consistency_level="Strong", num_shards=1)
+        collection = Collection(
+            "index_name", schema, consistency_level="Strong", num_shards=1
+        )
 
-        for j in track(range(0, N, self.batch_size), description=f"Milvus: Ingesting {N} vectors of size {D}"):
+        for j in track(
+            range(0, N, self.batch_size),
+            description=f"Milvus: Ingesting {N} vectors of size {D}",
+        ):
             to_insert = self.vectors[j : j + self.batch_size]
             arbitrary_index = list(range(j, j + len(to_insert)))
             entities = [

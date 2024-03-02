@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import requests
 import rich
+from vod.src.vod_benchmarking.docker_stats_logger import DockerMemoryLogger
 import vod_types as vt
 from vod_search import base, faiss_search, io
 from vod_search.socket import find_available_port
@@ -96,7 +97,9 @@ class FaissClient(base.SearchClient):
             "vectors": serialized_vectors,
             "top_k": top_k,
         }
-        response = requests.post(f"{self.url}/fast-search", json=payload, timeout=timeout)
+        response = requests.post(
+            f"{self.url}/fast-search", json=payload, timeout=timeout
+        )
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as exc:
@@ -147,8 +150,13 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         serve_on_gpu: bool = False,
         run_as_docker_image: bool = True,
         num_batches: int = 1000,
+        dockerMemoryLogger: DockerMemoryLogger | None = None,
     ):
-        super().__init__(skip_setup=skip_setup, free_resources=free_resources)
+        super().__init__(
+            skip_setup=skip_setup,
+            free_resources=free_resources,
+            dockerMemoryLogger=dockerMemoryLogger,
+        )
         self.vectors: np.ndarray = vectors
         self.index_parameters = index_parameters
         self.logging_level = logging_level
@@ -230,7 +238,9 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         return super().service_name + f"-{self.port}"
 
     def _get_factory_string(self):
-        preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
+        preprocessing: None | ProductQuantization | ScalarQuantization = (
+            self.index_parameters.preprocessing
+        )
         index_type: HNSW | IVF = self.index_parameters.index_type
 
         if isinstance(index_type, IVF):  # TODO move n_probe to search
@@ -261,9 +271,13 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         # and preferably around 40 times larger
         if isinstance(self.index_parameters.index_type, IVF):
             batch_size = self.vectors.shape[0] // self.num_batches
-            min_batch_size = self.index_parameters.index_type.n_partition * 40  #  * 10  # this seems to be optimal
+            min_batch_size = (
+                self.index_parameters.index_type.n_partition * 40
+            )  #  * 10  # this seems to be optimal
             if min_batch_size > batch_size:
-                print("(faiss) Changing batch size for optimizating IVF index construction")
+                print(
+                    "(faiss) Changing batch size for optimizating IVF index construction"
+                )
                 print("From", batch_size, "to", min_batch_size)
                 self.num_batches = self.vectors.shape[0] // min_batch_size
 

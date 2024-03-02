@@ -9,7 +9,7 @@ import typing as typ
 import loguru
 import numpy as np
 
-from vod_benchmarking import Timer
+from vod_benchmarking import Timer, DockerMemoryLogger
 import vod_types as vt
 from typing_extensions import Self
 
@@ -95,10 +95,13 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
         self,
         skip_setup: bool = False,
         free_resources: bool = False,
+        dockerMemoryLogger: DockerMemoryLogger | None = None,
     ) -> None:
         self.skip_setup = skip_setup
         self.free_resources = free_resources
         self.timerBuildIndex = Timer()
+        self.timerServerStartup = Timer()
+        self.dockerMemoryLogger = dockerMemoryLogger
 
     def __enter__(self) -> "Self":
         """Start the server."""
@@ -109,11 +112,21 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
         return self
 
     def _setup(self) -> None:
+        # measure server startup time
+        self.timerServerStartup.begin()
         self._server_proc = self._start_server()
-        # NOTE add delay here and save the timestamp for referencing?
+        self.timerServerStartup.end()
+
+        # measure 5 seconds of baseline memory consumption prior to ingesting vectors
+        if self.dockerMemoryLogger:
+            self.dockerMemoryLogger.set_begin_baseline()
+            time.sleep(5)
+            self.dockerMemoryLogger.set_done_baseline()
         self._on_init()
 
-    def __exit__(self, exc_type: typ.Any, exc_val: typ.Any, exc_tb: typ.Any) -> None:  # noqa: ANN401
+    def __exit__(
+        self, exc_type: typ.Any, exc_val: typ.Any, exc_tb: typ.Any
+    ) -> None:  # noqa: ANN401
         """Kill the server."""
         self._on_exit()
         if self._server_proc is not None:
@@ -175,7 +188,9 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
             time.sleep(0.1)
             if time.time() - t0 > self._timeout:
                 server_proc.terminate()
-                raise TimeoutError(f"Couldn't ping the server after {self._timeout:.0f}s.")
+                raise TimeoutError(
+                    f"Couldn't ping the server after {self._timeout:.0f}s."
+                )
         loguru.logger.debug(f"Spawned {self.service_info} in {time.time() - t0:.1f}s.")
         return server_proc
 

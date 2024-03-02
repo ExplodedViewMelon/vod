@@ -28,6 +28,8 @@ class DockerMemoryLogger:
         )
         self.searchMasterName = searchMasterName
         self.folder_path: str = f"./docker_memory_logs/{timestamp}/"
+        self.begin_baseline: str = "-1"
+        self.done_baseline: str = "-1"
         self.begin_ingesting: str = "-1"
         self.done_ingesting: str = "-1"
         self.begin_benchmarking: str = "-1"
@@ -39,7 +41,9 @@ class DockerMemoryLogger:
 
         self.start_logging()
         if overwrite_logs:
-            with open(f"{self.folder_path}{self.index_specification}.csv", "w") as file:  # make file or overwrite
+            with open(
+                f"{self.folder_path}{self.index_specification}.csv", "w"
+            ) as file:  # make file or overwrite
                 pass
 
     def start_logging(self):
@@ -47,15 +51,15 @@ class DockerMemoryLogger:
         # start script
         script = f"""
         start_time=$(date +%s)
-        end_time=$((start_time + {self.timeout}))   
-        
-        while true; do 
+        end_time=$((start_time + {self.timeout}))
+
+        while true; do
 
             current_time=$(date +%s)
             if [ $current_time -ge $end_time ]; then
                 break
             fi
-        
+
             docker stats --no-stream | while read line; do
                 echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> {self.folder_path}{self.index_specification}.csv
             done
@@ -80,6 +84,12 @@ class DockerMemoryLogger:
     def get_current_datetime(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    def set_begin_baseline(self):
+        self.begin_baseline = self.get_current_datetime()
+
+    def set_done_baseline(self):
+        self.done_baseline = self.get_current_datetime()
+
     def set_begin_ingesting(self):
         self.begin_ingesting = self.get_current_datetime()
 
@@ -101,7 +111,12 @@ class DockerMemoryLogger:
             for process in df.NAME.unique():
                 df_subset = df.query(f"NAME == '{process}'")
                 # t = range(0,len(memory_usage))
-                plt.plot(df_subset.TIMESTAMP, df_subset.MEMORY_USAGE_MB, label=process, marker="x")
+                plt.plot(
+                    df_subset.TIMESTAMP,
+                    df_subset.MEMORY_USAGE_MB,
+                    label=process,
+                    marker="x",
+                )
                 plt.xticks(rotation=45)
                 # plt.index_specification(f"{process} memory usage")
                 plt.xlabel("timestamp")
@@ -116,6 +131,8 @@ class DockerMemoryLogger:
         timestamps_raw = [
             timestamp
             for timestamp in [
+                self.begin_baseline,
+                self.done_baseline,
                 self.begin_ingesting,
                 self.done_ingesting,
                 self.begin_benchmarking,
@@ -124,7 +141,14 @@ class DockerMemoryLogger:
             if timestamp != "-1"
         ]
         timestamps = pd.to_datetime(timestamps_raw)
-        labels = ["begin_server", "done_ingesting", "begin_benchmarking", "done_server"]
+        labels = [
+            "begin_baseline",
+            "done_baseline",
+            "begin_ingesting",
+            "done_ingesting",
+            "begin_benchmarking",
+            "done_benchmarking",
+        ]
 
         plt.vlines(timestamps, 0, df.MEMORY_USAGE_MB.max())
         for label, timestamp in zip(labels, timestamps):  # type: ignore
@@ -139,7 +163,11 @@ class DockerMemoryLogger:
         plt.savefig(f"{self.folder_path}{self.index_specification}.png")
 
     def get_data(self):
-        df = pd.read_csv(f"{self.folder_path}{self.index_specification}.csv", delimiter=r"\s\s+", engine="python")
+        df = pd.read_csv(
+            f"{self.folder_path}{self.index_specification}.csv",
+            delimiter=r"\s\s+",
+            engine="python",
+        )
         df = df.query("NAME != 'NAME'")  # remove headers
         df = df.query("NAME != '0.00%'")  # remove headers
         columns = df.columns.tolist()  # change name of timestamp
@@ -171,6 +199,9 @@ class DockerMemoryLogger:
         # get cummulative of each process, if multiple
         df = df.groupby("TIMESTAMP").sum()
 
+        df_baseline = df.query(
+            f"TIMESTAMP > '{self.begin_baseline}' and TIMESTAMP < '{self.done_baseline}'"
+        ).MEMORY_USAGE_MB
         df_ingesting = df.query(
             f"TIMESTAMP > '{self.begin_ingesting}' and TIMESTAMP < '{self.done_ingesting}'"
         ).MEMORY_USAGE_MB
@@ -181,10 +212,12 @@ class DockerMemoryLogger:
         # get either milvus or qdrant here. or faiss.
 
         return {
-            "ingesting_max": df_ingesting.max(),
-            "ingesting_mean": df_ingesting.mean(),
-            "benchmarking_max": df_benchmarking.max(),
-            "benchmarking_mean": df_benchmarking.mean(),
+            "baselineMax": df_baseline.max(),
+            "baselineMean": df_baseline.mean(),
+            "ingestingMax": df_ingesting.max(),
+            "ingestingMean": df_ingesting.mean(),
+            "benchmarkingMax": df_benchmarking.max(),
+            "benchmarkingMean": df_benchmarking.mean(),
         }
 
 
