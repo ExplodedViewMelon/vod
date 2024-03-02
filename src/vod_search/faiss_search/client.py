@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import requests
 import rich
-from vod.src.vod_benchmarking.docker_stats_logger import DockerMemoryLogger
+from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
 import vod_types as vt
 from vod_search import base, faiss_search, io
 from vod_search.socket import find_available_port

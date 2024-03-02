@@ -227,7 +227,9 @@ for dataset_class in datasets_classes:
 
                 print("Spinning up server...")
                 with _SearchMaster(
-                    vectors=index_vectors, index_parameters=index_specification
+                    vectors=index_vectors,
+                    index_parameters=index_specification,
+                    dockerMemoryLogger=dockerMemoryLogger,
                 ) as master:
                     masterTimer.end()
                     dockerMemoryLogger.set_done_ingesting()

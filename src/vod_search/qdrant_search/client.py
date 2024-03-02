@@ -23,6 +23,8 @@ from rich.progress import track
 from vod_search import base
 from vod_tools import pretty
 
+from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
+
 from vod_search.models import *
 
 QDRANT_SUBSET_ID_KEY: str = "_SUBSET_ID_"
@@ -211,6 +213,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         qdrant_body: Optional[dict[str, Any]] = None,
         free_resources: bool = False,
         force_single_collection: bool = False,
+        dockerMemoryLogger: DockerMemoryLogger | None = None,
     ) -> None:
         super().__init__(
             skip_setup=skip_setup,

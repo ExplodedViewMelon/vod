@@ -31,6 +31,7 @@ from typing import Any, Iterable, Optional
 from rich.progress import track
 
 from vod_search.models import *
+from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
 
 
 class MilvusSearchClient(base.SearchClient):
@@ -156,6 +157,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         self,
         vectors: ndarray,  # rewrite to sequence
         index_parameters: IndexParameters,
+        dockerMemoryLogger: DockerMemoryLogger | None = None,
         *,
         host: str = "localhost",
     ) -> None:
