@@ -219,7 +219,6 @@ for dataset_class in datasets_classes:
                 )
                 masterTimer = Timer()
                 masterTimer.begin()
-                dockerMemoryLogger.set_begin_ingesting()
 
                 # set timeout
                 signal.signal(signal.SIGALRM, timeout_handler)
@@ -232,7 +231,6 @@ for dataset_class in datasets_classes:
                     dockerMemoryLogger=dockerMemoryLogger,
                 ) as master:
                     masterTimer.end()
-                    dockerMemoryLogger.set_done_ingesting()
                     signal.alarm(0)  # Disable the timeout alarm
 
                     recalls = []

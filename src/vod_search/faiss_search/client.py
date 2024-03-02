@@ -182,8 +182,11 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         # ask server to ingest index
         # also functions as a ping
         client = self.get_client()
+        if self.dockerMemoryLogger:
+            self.dockerMemoryLogger.set_begin_ingesting()
         assert client.init_index(), "Failed to ping server and init index"
-        return super()._on_init()
+        if self.dockerMemoryLogger:
+            self.dockerMemoryLogger.set_done_ingesting()
 
     def _make_env(self) -> dict[str, str]:
         env = copy(dict(os.environ))  # type: ignore
