@@ -42,19 +42,19 @@ def parse_args() -> argparse.Namespace:
 
 
 @app.post("/load_index")
-def init_index(arguments: argparse.Namespace) -> faiss.Index:
+def init_index() -> str:
     """Initialize the index."""
     logger.info("Initializing index")
-    logger.info(f"Does index exists? {os.path.exists(arguments.index_path)}")
-    logger.info(f"It's name? {arguments.index_path}")
+    logger.info(f"Does index exists? {os.path.exists(args.index_path)}")
+    logger.info(f"It's name? {args.index_path}")
     file_list = os.listdir("faiss_index/")
     logger.info(f"This exists: {file_list}")
-    logger.info(f"f Does index exists? {os.path.exists(arguments.index_path)}")
+    logger.info(f"f Does index exists? {os.path.exists(args.index_path)}")
 
-    index = faiss.read_index(arguments.index_path)
-    index.nprobe = arguments.nprobe
-    logger.info(f"index initialized succesfully with {index.nprobe}")
-    return index
+    faiss_index = faiss.read_index(args.index_path)
+    faiss_index.nprobe = args.nprobe
+    logger.info(f"index initialized succesfully with {faiss_index.nprobe}")
+    return "OK"
 
 
 @app.get("/")
@@ -128,10 +128,6 @@ def measure_memory(original_function):
 
 args = parse_args()
 logger.info("Starting API")
-faiss_index = init_index(args)
-if args.serve_on_gpu:
-    logger.info("Moving index to GPU")
-    co = vod_configs.FaissGpuConfig().cloner_options()
-    faiss_index = faiss.index_cpu_to_all_gpus(faiss_index, co=co)
-
+faiss_index = faiss.Index()  # dummy object
+# faiss_index = init_index(args) # build index from client command instead
 run_faiss_server(args.host, args.port)

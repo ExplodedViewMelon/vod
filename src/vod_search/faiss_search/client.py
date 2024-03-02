@@ -62,6 +62,15 @@ class FaissClient(base.SearchClient):
         response.raise_for_status()
         return "OK" in response.text
 
+    def init_index(self, timeout=600) -> bool:
+        """Load index"""
+        response = requests.post(
+            f"{self.url}/load_index",
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return "OK" in response.text
+
     # def search_py(self, query_vec: np.ndarray, top_k: int = 3, timeout: float = 120) -> vt.RetrievalBatch:
     #     """Search the server given a batch of vectors (slow implementation)."""
     #     response = requests.post(
@@ -167,7 +176,14 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         self.serve_on_gpu = serve_on_gpu
         self.run_as_docker_image = run_as_docker_image
         self.num_batches = num_batches
-        self._build_index()
+        self._build_index()  # build index locally, copy to container
+
+    def _on_init(self) -> None:
+        # ask server to ingest index
+        # also functions as a ping
+        client = self.get_client()
+        assert client.init_index(), "Failed to ping server and init index"
+        return super()._on_init()
 
     def _make_env(self) -> dict[str, str]:
         env = copy(dict(os.environ))  # type: ignore

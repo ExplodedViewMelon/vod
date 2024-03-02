@@ -55,8 +55,8 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 _SearchMasters = [
     faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
-    milvus_search.MilvusSearchMaster,
+    # qdrant_search.QdrantSearchMaster,
+    # milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
