@@ -176,12 +176,19 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         self.serve_on_gpu = serve_on_gpu
         self.run_as_docker_image = run_as_docker_image
         self.num_batches = num_batches
-        self._build_index()  # build index locally, copy to container
+        self.make_index_folder()
+
+    def make_index_folder(self) -> None:
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.index_path = f"{self.tmpdir.name}/index.faiss"
 
     def _on_init(self) -> None:
+        # make index
+        self._build_index()  # build index locally, copy to container
+
         # ask server to ingest index
-        # also functions as a ping
         client = self.get_client()
+
         if self.dockerMemoryLogger:
             self.dockerMemoryLogger.set_begin_ingesting()
         assert client.init_index(), "Failed to ping server and init index"
@@ -319,8 +326,6 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         else:
             index.metric_type = faiss.METRIC_L2
 
-        self.tmpdir = tempfile.TemporaryDirectory()
-        self.index_path = f"{self.tmpdir.name}/index.faiss"
         faiss.write_index(index, self.index_path)
         self.timerBuildIndex.end()
 
