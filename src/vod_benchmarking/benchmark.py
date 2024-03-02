@@ -55,54 +55,53 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 _SearchMasters = [
     faiss_search.FaissMaster,
-    # qdrant_search.QdrantSearchMaster,
-    # milvus_search.MilvusSearchMaster,
+    qdrant_search.QdrantSearchMaster,
+    milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
-    # None,  # Remember this one!
-    ProductQuantization(m=8),  # must be divisible with n_dimensions
+    None,  # Remember this one!
+    # ProductQuantization(m=8),  # must be divisible with n_dimensions
     # ScalarQuantization(n=8),
 ]
 
 index_types = [
-    # 1/10th
-    # IVF(n_partition=64, n_probe=10),
-    # IVF(n_partition=128, n_probe=20),
-    # IVF(n_partition=256, n_probe=40),
-    # IVF(n_partition=512, n_probe=80),
-    # IVF(n_partition=1024, n_probe=160),
-    # 1/100th
-    # IVF(n_partition=100, n_probe=100),
-    # IVF(n_partition=200, n_probe=10),
-    # IVF(n_partition=400, n_probe=20),
-    # IVF(n_partition=800, n_probe=40),
-    # IVF(n_partition=1600, n_probe=80),
-    # # misc
-    HNSW(M=8, ef_construction=256, ef_search=32),
-    # HNSW(M=16, ef_construction=256, ef_search=32),
-    # HNSW(M=8, ef_construction=256, ef_search=128),
-    # HNSW(M=16, ef_construction=256, ef_search=128),
-    # HNSW(M=32, ef_construction=256, ef_search=128),
-    # HNSW(M=64, ef_construction=256, ef_search=128),
-    # # HNSW TEST
-    # #
-    # HNSW(M=8, ef_construction=400, ef_search=100),
-    # HNSW(M=16, ef_construction=400, ef_search=100),
-    # HNSW(M=32, ef_construction=400, ef_search=100),
-    # HNSW(M=64, ef_construction=400, ef_search=100),
-    # #
-    # HNSW(M=16, ef_construction=200, ef_search=100),
-    # HNSW(M=16, ef_construction=400, ef_search=100),
-    # HNSW(M=16, ef_construction=800, ef_search=100),
-    # HNSW(M=16, ef_construction=1600, ef_search=100),
-    # HNSW(M=16, ef_construction=3200, ef_search=100),
-    # #
-    # HNSW(M=16, ef_construction=200, ef_search=200),
-    # HNSW(M=16, ef_construction=400, ef_search=200),
-    # HNSW(M=16, ef_construction=800, ef_search=200),
-    # HNSW(M=16, ef_construction=1600, ef_search=200),
-    # HNSW(M=16, ef_construction=3200, ef_search=200),
+    # IVF sweep w. ~1/10 n_probe
+    IVF(n_partition=64, n_probe=8),
+    IVF(n_partition=128, n_probe=16),
+    IVF(n_partition=256, n_probe=32),
+    IVF(n_partition=512, n_probe=64),
+    IVF(n_partition=1024, n_probe=128),
+    IVF(n_partition=2048, n_probe=256),
+    IVF(n_partition=4096, n_probe=512),
+    # n_partition sweep
+    IVF(n_partition=64, n_probe=1),
+    IVF(n_partition=128, n_probe=1),
+    IVF(n_partition=256, n_probe=1),
+    IVF(n_partition=512, n_probe=1),
+    IVF(n_partition=1024, n_probe=1),
+    # IVF n_probe test
+    IVF(n_partition=1024, n_probe=1),
+    IVF(n_partition=1024, n_probe=4),
+    IVF(n_partition=1024, n_probe=16),
+    IVF(n_partition=1024, n_probe=64),
+    IVF(n_partition=1024, n_probe=256),
+    # HNSW M sweep
+    HNSW(M=4, ef_construction=32, ef_search=128),
+    HNSW(M=8, ef_construction=32, ef_search=128),
+    HNSW(M=16, ef_construction=32, ef_search=128),
+    HNSW(M=32, ef_construction=32, ef_search=128),
+    HNSW(M=64, ef_construction=32, ef_search=128),
+    # HNSW ef_construction sweep
+    HNSW(M=32, ef_construction=8, ef_search=32),
+    HNSW(M=32, ef_construction=16, ef_search=32),
+    HNSW(M=32, ef_construction=32, ef_search=32),
+    HNSW(M=32, ef_construction=64, ef_search=32),
+    # HNSW ef_search sweep
+    HNSW(M=32, ef_construction=32, ef_search=8),
+    HNSW(M=32, ef_construction=32, ef_search=16),
+    HNSW(M=32, ef_construction=32, ef_search=32),
+    HNSW(M=32, ef_construction=32, ef_search=64),
 ]
 metrics = [
     "L2",
@@ -113,7 +112,7 @@ datasets_classes: list[Type[DatasetHDF5Simple]] = [
     DatasetSift1M,
     # DatasetGlove,  # the angular one
     # DatasetLastFM,
-    # DatasetGIST,
+    DatasetGIST,
 ]  # all of them
 
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
