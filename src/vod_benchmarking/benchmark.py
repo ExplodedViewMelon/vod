@@ -218,6 +218,7 @@ for dataset_class in datasets_classes:
                     timestamp=TIMESTAMP,
                     index_specification=f"{index_specification}",
                     searchMasterName=searchMasterName,
+                    timeout=int(TIMEOUT_INDEX_BUILD * 1.5),
                 )
                 masterTimer = Timer()
                 masterTimer.begin()
