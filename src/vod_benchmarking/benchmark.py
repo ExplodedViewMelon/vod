@@ -55,8 +55,8 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 _SearchMasters = [
     faiss_search.FaissMaster,
-    # qdrant_search.QdrantSearchMaster,
-    # milvus_search.MilvusSearchMaster,
+    qdrant_search.QdrantSearchMaster,
+    milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
@@ -107,10 +107,10 @@ metrics = [
 ]
 
 datasets_classes: list[Type[DatasetHDF5Simple]] = [
-    # DatasetSift1M,
+    DatasetSift1M,
     # DatasetGlove,  # the angular one
     # DatasetLastFM,
-    DatasetGIST,
+    # DatasetGIST,
 ]  # all of them
 
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest

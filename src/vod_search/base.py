@@ -119,8 +119,9 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
 
         # measure 5 seconds of baseline memory consumption prior to ingesting vectors
         if self.dockerMemoryLogger:
+            time.sleep(1)
             self.dockerMemoryLogger.set_begin_baseline()
-            time.sleep(5)
+            time.sleep(3)
             self.dockerMemoryLogger.set_done_baseline()
             time.sleep(1)
         self._on_init()

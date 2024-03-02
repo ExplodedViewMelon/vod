@@ -268,6 +268,8 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
 
     def _build_index(self) -> None:
         self.timerBuildIndex.begin()
+        if self.dockerMemoryLogger:
+            self.dockerMemoryLogger.set_begin_ingesting()
         logger.info("Creating collection 'index_name'")
         if len(self.vectors.shape) != 2:
             raise ValueError(f"Expected a NxD vectors, got {self.vectors.shape}")
@@ -304,7 +306,10 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         collection.create_index("embeddings", index_parameters)
         collection.load()  # load index into server
         self.collection = collection
+
         self.timerBuildIndex.end()
+        if self.dockerMemoryLogger:
+            self.dockerMemoryLogger.set_done_ingesting()
 
     def __repr__(self) -> str:
         return f"index: milvus {self.index_parameters}"
