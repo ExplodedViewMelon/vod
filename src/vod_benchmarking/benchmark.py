@@ -55,14 +55,14 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 _SearchMasters = [
     faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
-    milvus_search.MilvusSearchMaster,
+    # qdrant_search.QdrantSearchMaster,
+    # milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
     None,  # Remember this one!
-    # ProductQuantization(m=8),  # must be divisible with n_dimensions
-    # ScalarQuantization(n=8),
+    ProductQuantization(m=8),  # must be divisible with n_dimensions
+    ScalarQuantization(n=8),
 ]
 
 index_types = [
@@ -70,7 +70,7 @@ index_types = [
     # IVF(n_partition=64, n_probe=10),
     # IVF(n_partition=128, n_probe=20),
     # IVF(n_partition=256, n_probe=40),
-    IVF(n_partition=512, n_probe=80),
+    # IVF(n_partition=512, n_probe=80),
     # IVF(n_partition=1024, n_probe=160),
     # 1/100th
     # IVF(n_partition=100, n_probe=100),
@@ -79,9 +79,12 @@ index_types = [
     # IVF(n_partition=800, n_probe=40),
     # IVF(n_partition=1600, n_probe=80),
     # # misc
-    HNSW(M=16, ef_construction=128, ef_search=128),
-    # HNSW(M=32, ef_construction=128, ef_search=128),
-    # HNSW(M=64, ef_construction=128, ef_search=128),
+    HNSW(M=8, ef_construction=256, ef_search=32),
+    HNSW(M=16, ef_construction=256, ef_search=32),
+    HNSW(M=8, ef_construction=256, ef_search=128),
+    HNSW(M=16, ef_construction=256, ef_search=128),
+    # HNSW(M=32, ef_construction=256, ef_search=128),
+    # HNSW(M=64, ef_construction=256, ef_search=128),
     # # HNSW TEST
     # #
     # HNSW(M=8, ef_construction=400, ef_search=100),
