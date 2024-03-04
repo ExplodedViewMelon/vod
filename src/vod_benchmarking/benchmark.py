@@ -109,10 +109,10 @@ metrics = [
 ]
 
 datasets_classes: list[Type[DatasetHDF5Simple]] = [
-    # DatasetSift1M,
+    DatasetSift1M,
     # DatasetGlove,  # the angular one
     # DatasetLastFM,
-    DatasetGIST,
+    # DatasetGIST,
 ]  # all of them
 
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
