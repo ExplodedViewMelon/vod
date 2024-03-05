@@ -3,6 +3,7 @@ from vod_search.models import IndexParameters
 from sklearn.neighbors import NearestNeighbors
 from time import perf_counter, sleep
 import numpy as np
+import time
 
 
 class Timer:
@@ -78,7 +79,10 @@ def timeout_handler(signum, frame):
 def stop_docker_containers():
     import subprocess
 
+    print("Stopping all docker processes...")
+
     subprocess.run(["docker", "compose", "down", "-v"])
+    time.sleep(5)
     subprocess.run(
         [
             "docker",

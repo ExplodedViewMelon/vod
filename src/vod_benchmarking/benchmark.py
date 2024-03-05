@@ -163,7 +163,6 @@ benchmark_counter = 0
 dockerMemoryLogger = None
 tb = ""
 
-print("Stopping all docker containers preemptively")
 stop_docker_containers()
 # clear_milvus_buckets()
 
@@ -202,6 +201,10 @@ for dataset_class in datasets_classes:
             searchMasterName = "milvus"
 
         for index_specification in index_specifications:
+
+            # stop all docker containers
+            stop_docker_containers()
+
             benchmark_counter += 1
             run_title = (
                 f"{searchMasterName} {index_specification}. TIMESTAMP: {TIMESTAMP}"
@@ -318,9 +321,6 @@ for dataset_class in datasets_classes:
                 if dockerMemoryLogger:
                     dockerMemoryLogger.stop_logging()
 
-                print("Stopping all docker processes...")
-                stop_docker_containers()
-
                 benchmark_results.append(
                     {
                         "Dataset": dataset.__repr__() if dataset else "None",
@@ -350,6 +350,8 @@ output_directory = f"{os.getcwd()}/benchmarking_results"
 os.makedirs(output_directory, exist_ok=True)
 output_file = f"{output_directory}/{TIMESTAMP}.csv"
 df_results.to_csv(output_file)
+
+stop_docker_containers()
 
 print("Total time elapsed during bechmarking:", benchmarkTimer)
 print("Saving results to", output_file)
