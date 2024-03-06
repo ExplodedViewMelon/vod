@@ -54,15 +54,15 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 # HYPERPARAMETERS
 
 _SearchMasters = [
-    # faiss_search.FaissMaster,
+    faiss_search.FaissMaster,
     # qdrant_search.QdrantSearchMaster,
-    milvus_search.MilvusSearchMaster,
+    # milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
     None,  # Remember this one!
-    # ProductQuantization(m=8),  # must be divisible with n_dimensions
-    # ScalarQuantization(n=8),
+    ProductQuantization(m=8),  # must be divisible with n_dimensions
+    ScalarQuantization(n=8),
 ]
 
 index_types = [
@@ -75,17 +75,17 @@ index_types = [
     IVF(n_partition=2048, n_probe=256),
     IVF(n_partition=4096, n_probe=512),
     # n_partition sweep
-    IVF(n_partition=64, n_probe=1),
-    IVF(n_partition=128, n_probe=1),
-    IVF(n_partition=256, n_probe=1),
-    IVF(n_partition=512, n_probe=1),
-    IVF(n_partition=1024, n_probe=1),
-    # IVF n_probe test
-    IVF(n_partition=1024, n_probe=1),
-    IVF(n_partition=1024, n_probe=4),
-    IVF(n_partition=1024, n_probe=16),
-    IVF(n_partition=1024, n_probe=64),
-    IVF(n_partition=1024, n_probe=256),
+    # IVF(n_partition=64, n_probe=1),
+    # IVF(n_partition=128, n_probe=1),
+    # IVF(n_partition=256, n_probe=1),
+    # IVF(n_partition=512, n_probe=1),
+    # IVF(n_partition=1024, n_probe=1),
+    # # IVF n_probe test
+    # IVF(n_partition=1024, n_probe=1),
+    # IVF(n_partition=1024, n_probe=4),
+    # IVF(n_partition=1024, n_probe=16),
+    # IVF(n_partition=1024, n_probe=64),
+    # IVF(n_partition=1024, n_probe=256),
     # HNSW M sweep
     HNSW(M=4, ef_construction=32, ef_search=128),
     HNSW(M=8, ef_construction=32, ef_search=128),
