@@ -54,8 +54,8 @@ TIMESTAMP = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 # HYPERPARAMETERS
 
 _SearchMasters = [
-    faiss_search.FaissMaster,
-    qdrant_search.QdrantSearchMaster,
+    # faiss_search.FaissMaster,
+    # qdrant_search.QdrantSearchMaster,
     milvus_search.MilvusSearchMaster,
 ]
 
