@@ -41,9 +41,7 @@ class DockerMemoryLogger:
 
         self.start_logging()
         if overwrite_logs:
-            with open(
-                f"{self.folder_path}{self.index_specification}.csv", "w"
-            ) as file:  # make file or overwrite
+            with open(f"{self.folder_path}{self.index_specification}.csv", "w") as file:  # make file or overwrite
                 pass
 
     def start_logging(self):

@@ -124,10 +124,10 @@ metrics = [
 ]
 
 datasets_classes: list[Type[DatasetHDF5Simple]] = [
-    DatasetSift1M,
+    # DatasetSift1M,
     # DatasetGlove,  # the angular one
     # DatasetLastFM,
-    # DatasetGIST,
+    DatasetGIST,
 ]  # all of them
 
 # datasets_classes: list[Type[DatasetHDF5Simple]] = [DatasetGlove]  # smallest
@@ -346,5 +346,3 @@ stop_docker_containers()
 
 print("Total time elapsed during bechmarking:", benchmarkTimer)
 print("Saving results to", output_file)
-
-# meow

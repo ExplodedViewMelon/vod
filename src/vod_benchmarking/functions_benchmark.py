@@ -87,8 +87,6 @@ def stop_docker_containers():
         [
             "docker",
             "stop",
-            *subprocess.run(
-                ["docker", "ps", "-aq"], capture_output=True, text=True
-            ).stdout.split(),
+            *subprocess.run(["docker", "ps", "-aq"], capture_output=True, text=True).stdout.split(),
         ]
     )
