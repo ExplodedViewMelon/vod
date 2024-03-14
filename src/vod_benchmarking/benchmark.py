@@ -61,19 +61,34 @@ _SearchMasters = [
 
 preprocessings = [
     None,  # Remember this one!
-    ProductQuantization(m=8),  # must be divisible with n_dimensions
+    ProductQuantization(m=4),  # must be divisible with n_dimensions
+    ProductQuantization(m=8),  # i.e. 128 for sift
+    ProductQuantization(m=16),
+    ScalarQuantization(n=4),
+    ScalarQuantization(n=6),
     ScalarQuantization(n=8),
 ]
 
 index_types = [
     # IVF sweep w. ~1/10 n_probe
-    IVF(n_partition=64, n_probe=8),
-    IVF(n_partition=128, n_probe=16),
+    # IVF(n_partition=64, n_probe=8),
+    # IVF(n_partition=128, n_probe=16),
+    # PQ and SQ SWEEP
     IVF(n_partition=256, n_probe=32),
     IVF(n_partition=512, n_probe=64),
     IVF(n_partition=1024, n_probe=128),
     IVF(n_partition=2048, n_probe=256),
-    IVF(n_partition=4096, n_probe=512),
+    HNSW(M=8, ef_construction=16, ef_search=128),  # default is M*2 for ef_construction
+    HNSW(M=16, ef_construction=32, ef_search=128),
+    HNSW(M=32, ef_construction=64, ef_search=128),
+    HNSW(M=64, ef_construction=128, ef_search=256),
+    # IVF(n_partition=1024, n_probe=1),
+    # IVF(n_partition=1024, n_probe=8),
+    # IVF(n_partition=1024, n_probe=32),
+    # IVF(n_partition=1024, n_probe=64),
+    # IVF(n_partition=1024, n_probe=128),
+    # IVF(n_partition=1024, n_probe=256),
+    # IVF(n_partition=1024, n_probe=512),
     # n_partition sweep
     # IVF(n_partition=64, n_probe=1),
     # IVF(n_partition=128, n_probe=1),
@@ -86,22 +101,22 @@ index_types = [
     # IVF(n_partition=1024, n_probe=16),
     # IVF(n_partition=1024, n_probe=64),
     # IVF(n_partition=1024, n_probe=256),
-    # HNSW M sweep
-    HNSW(M=4, ef_construction=32, ef_search=128),
-    HNSW(M=8, ef_construction=32, ef_search=128),
-    HNSW(M=16, ef_construction=32, ef_search=128),
-    HNSW(M=32, ef_construction=32, ef_search=128),
-    HNSW(M=64, ef_construction=32, ef_search=128),
-    # HNSW ef_construction sweep
-    HNSW(M=32, ef_construction=8, ef_search=32),
-    HNSW(M=32, ef_construction=16, ef_search=32),
-    HNSW(M=32, ef_construction=32, ef_search=32),
-    HNSW(M=32, ef_construction=64, ef_search=32),
-    # HNSW ef_search sweep
-    HNSW(M=32, ef_construction=32, ef_search=8),
-    HNSW(M=32, ef_construction=32, ef_search=16),
-    HNSW(M=32, ef_construction=32, ef_search=32),
-    HNSW(M=32, ef_construction=32, ef_search=64),
+    # # HNSW M sweep
+    # HNSW(M=4, ef_construction=32, ef_search=128),
+    # HNSW(M=8, ef_construction=16, ef_search=128), # default is M*2 for ef_construction
+    # HNSW(M=16, ef_construction=32, ef_search=128),
+    # HNSW(M=32, ef_construction=64, ef_search=128),
+    # HNSW(M=64, ef_construction=32, ef_search=128),
+    # # HNSW ef_construction sweep
+    # HNSW(M=32, ef_construction=8, ef_search=32),
+    # HNSW(M=32, ef_construction=16, ef_search=32),
+    # HNSW(M=32, ef_construction=32, ef_search=32),
+    # HNSW(M=32, ef_construction=64, ef_search=32),
+    # # HNSW ef_search sweep
+    # HNSW(M=32, ef_construction=32, ef_search=8),
+    # HNSW(M=32, ef_construction=32, ef_search=16),
+    # HNSW(M=32, ef_construction=32, ef_search=32),
+    # HNSW(M=32, ef_construction=32, ef_search=64),
 ]
 metrics = [
     "L2",
@@ -166,9 +181,7 @@ tb = ""
 stop_docker_containers()
 # clear_milvus_buckets()
 
-number_of_benchmarks = (
-    len(datasets_classes) * len(_SearchMasters) * len(index_specifications)
-)
+number_of_benchmarks = len(datasets_classes) * len(_SearchMasters) * len(index_specifications)
 print(f"Running {number_of_benchmarks} benchmarks in total.")
 
 benchmarkTimer.begin()
@@ -206,12 +219,8 @@ for dataset_class in datasets_classes:
             stop_docker_containers()
 
             benchmark_counter += 1
-            run_title = (
-                f"{searchMasterName} {index_specification}. TIMESTAMP: {TIMESTAMP}"
-            )
-            print(
-                f"Running {benchmark_counter} out of {number_of_benchmarks} benchmarks. Title: {run_title}"
-            )
+            run_title = f"{searchMasterName} {index_specification}. TIMESTAMP: {TIMESTAMP}"
+            print(f"Running {benchmark_counter} out of {number_of_benchmarks} benchmarks. Title: {run_title}")
             master = None
             try:
                 sleep(5)  # wait for server to terminate before creating new
@@ -249,9 +258,7 @@ for dataset_class in datasets_classes:
 
                     # warm up
                     for trial in track(range(n_warmup), description=f"Warming up"):
-                        results = client.search(
-                            vector=query_vectors[trial], top_k=top_k
-                        )
+                        results = client.search(vector=query_vectors[trial], top_k=top_k)
 
                     # start benchmarking
                     dockerMemoryLogger.set_begin_benchmarking()
@@ -259,38 +266,26 @@ for dataset_class in datasets_classes:
                     for trial in track(range(n_trials), description=f"Benchmarking"):
                         # get search results
                         searchTimer.begin()
-                        results = client.search(
-                            vector=query_vectors[trial + n_warmup], top_k=top_k
-                        )
+                        results = client.search(vector=query_vectors[trial + n_warmup], top_k=top_k)
                         searchTimer.end()
                         pred_indices = results.indices
 
                         # get true results
-                        true_indices = get_ground_truth(
-                            index_vectors, query_vectors[trial + n_warmup], top_k=top_k
-                        )
+                        true_indices = get_ground_truth(index_vectors, query_vectors[trial + n_warmup], top_k=top_k)
 
                         # save trial results
                         recalls.append(recall_batch(pred_indices, true_indices))
                         recalls_at_1.append(recall_at_k(pred_indices, true_indices, 1))
-                        recalls_at_10.append(
-                            recall_at_k(pred_indices, true_indices, 10)
-                        )
-                        recalls_at_100.append(
-                            recall_at_k(pred_indices, true_indices, 100)
-                        )
-                        recalls_at_1000.append(
-                            recall_at_k(pred_indices, true_indices, 1000)
-                        )
+                        recalls_at_10.append(recall_at_k(pred_indices, true_indices, 10))
+                        recalls_at_100.append(recall_at_k(pred_indices, true_indices, 100))
+                        recalls_at_1000.append(recall_at_k(pred_indices, true_indices, 1000))
 
                     # stop logging
                     dockerMemoryLogger.set_done_benchmarking()
                     dockerMemoryLogger.stop_logging()
 
                     # save stats
-                    memory_statistics: dict[str, float] = (
-                        dockerMemoryLogger.get_statistics()
-                    )
+                    memory_statistics: dict[str, float] = dockerMemoryLogger.get_statistics()
                     try:
                         dockerMemoryLogger.make_plots()
                     except Exception as pe:
@@ -324,11 +319,7 @@ for dataset_class in datasets_classes:
                 benchmark_results.append(
                     {
                         "Dataset": dataset.__repr__() if dataset else "None",
-                        "Index": (
-                            master.__repr__()
-                            if master
-                            else f"index: {searchMasterName} {index_specification}"
-                        ),
+                        "Index": (master.__repr__() if master else f"index: {searchMasterName} {index_specification}"),
                         "IndexParameters": f"error: {tb}",
                         "timerMasterMean": -1,
                         "timerServerStartupMean": -1,
@@ -355,3 +346,5 @@ stop_docker_containers()
 
 print("Total time elapsed during bechmarking:", benchmarkTimer)
 print("Saving results to", output_file)
+
+# meow

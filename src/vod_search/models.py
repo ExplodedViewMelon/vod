@@ -57,7 +57,7 @@ class IVF:
         self.n_probe = n_probe
 
     def __repr__(self) -> str:
-        return f"{self.name}, n_partition={self.n_partition}"
+        return f"{self.name}, n_partition={self.n_partition}, n_probe={self.n_probe}"
 
 
 class IndexParameters(abc.ABC):
