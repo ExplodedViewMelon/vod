@@ -37,14 +37,17 @@ class DockerMemoryLogger:
         self.begin_benchmarking: str = "-1"
         self.done_benchmarking: str = "-1"
         self.timeout: int = timeout
+        self.path_to_log = f"{self.folder_path}{self.index_specification}.csv"
 
         # Create folder if it does not exist
         os.makedirs(self.folder_path, exist_ok=True)
 
         self.start_logging()
         if overwrite_logs:
-            with open(f"{self.folder_path}{self.index_specification}.csv", "w") as file:  # make file or overwrite
+            with open(self.path_to_log, "w") as file:  # make file or overwrite
                 pass
+
+        print(f"Writing logs to {self.path_to_log}")
 
     def start_logging(self):
         print("starting docker logging")
@@ -61,7 +64,7 @@ class DockerMemoryLogger:
             fi
 
             docker stats --no-stream | while read line; do
-                echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> {self.folder_path}{self.index_specification}.csv
+                echo "$(date -u +"%Y-%m-%d %H:%M:%S")   $line" >> {self.path_to_log}
             done
             sleep 0.1
         done

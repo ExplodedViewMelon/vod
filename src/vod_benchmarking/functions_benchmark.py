@@ -142,7 +142,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle):
         dockerMemoryLogger = DockerMemoryLogger(
             timestamp=TIMESTAMP,
             index_specification=f"{bs.indexParameters}",
-            searchMasterName=f"{bs.indexProviderClass}",  # TODO only give it name
+            searchMasterName=f"{bs.indexProviderClass}",
             timeout=bs.timeout_benchmark,
         )
 
