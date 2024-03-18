@@ -1,4 +1,4 @@
-from vod_benchmarking.models import IndexParameters
+from vod_benchmarking.models import *
 from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
 import vod_types as vt
 from vod_search import base, faiss_search, io
