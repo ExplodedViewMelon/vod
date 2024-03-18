@@ -251,11 +251,11 @@ class BenchmarkingResults:
             "indexType": [self.benchSpecification.indexParameters.index_type],
             # disable black formatter for the following lines
             # fmt: off
-            "M": [self.benchSpecification.indexParameters.index_type.M if hasattr(self.benchSpecification.indexParameters.index_type, 'M') else -1],
-            "efSearch": [self.benchSpecification.indexParameters.index_type.ef_search if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_search') else -1],
-            "efConstruction": [self.benchSpecification.indexParameters.index_type.ef_construction if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_construction') else -1],
-            "nPartitions": [self.benchSpecification.indexParameters.index_type.n_partition if hasattr(self.benchSpecification.indexParameters.index_type, 'n_partition') else -1],
-            "nProbe": [self.benchSpecification.indexParameters.index_type.n_probe if hasattr(self.benchSpecification.indexParameters.index_type, 'n_probe') else -1],
+            "M": [self.benchSpecification.indexParameters.index_type.M if hasattr(self.benchSpecification.indexParameters.index_type, 'M') else None],
+            "efSearch": [self.benchSpecification.indexParameters.index_type.ef_search if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_search') else None],
+            "efConstruction": [self.benchSpecification.indexParameters.index_type.ef_construction if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_construction') else None],
+            "nPartitions": [self.benchSpecification.indexParameters.index_type.n_partition if hasattr(self.benchSpecification.indexParameters.index_type, 'n_partition') else None],
+            "nProbe": [self.benchSpecification.indexParameters.index_type.n_probe if hasattr(self.benchSpecification.indexParameters.index_type, 'n_probe') else None],
             # fmt: on
             "preprocessing": [self.benchSpecification.indexParameters.preprocessing],
             "distanceMetric": [self.benchSpecification.indexParameters.metric],
