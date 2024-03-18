@@ -207,6 +207,7 @@ benchmarkSpecificationsBatch = [
     ),
 ]
 
+print(f"{len(benchmarkSpecificationsBatch)} batches planned")
 for benchmarkSpecifications in benchmarkSpecificationsBatch:
     print(f"Running batch: {benchmarkSpecifications.label}")
     benchmarkingResultsAll = pd.DataFrame()
