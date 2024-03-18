@@ -303,7 +303,8 @@ class FaissMaster(base.SearchMaster[FaissClient], abc.ABC):
                 print("(faiss) Changing batch size for optimizating product quantization index construction")
                 print("From", batch_size, "to", min_batch_size)
                 self.num_batches = self.vectors.shape[0] // min_batch_size
-
+        if self.num_batches < 1:
+            self.num_batches = 1
         index = faiss_search.build_faiss_index(  # valentin's code
             vectors=self.vectors,
             factory_string=factory_string,
