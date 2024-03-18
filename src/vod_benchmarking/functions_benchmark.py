@@ -215,6 +215,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
             recall_at_1000 = float(np.mean(recalls_at_1000))
 
             return BenchmarkingResults(
+                bs,
                 master.timerBuildIndex.mean,
                 timerServerStartup.mean,
                 timerSearch.mean,
