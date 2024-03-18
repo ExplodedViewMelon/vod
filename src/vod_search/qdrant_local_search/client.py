@@ -14,7 +14,7 @@ import numpy as np
 from numpy import ndarray
 import torch
 from vod_search.qdrant_local_search.models import Query, Response
-from vod_search.models import IndexSpecification
+from vod_benchmarking.models import IndexParameters
 
 
 class QdrantLocalSearchClient(base.SearchClient):

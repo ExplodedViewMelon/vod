@@ -9,7 +9,6 @@ import typing as typ
 import loguru
 import numpy as np
 
-from vod_benchmarking import Timer, DockerMemoryLogger
 import vod_types as vt
 from typing_extensions import Self
 
@@ -85,6 +84,8 @@ Sc_co = typ.TypeVar("Sc_co", bound=SearchClient, covariant=True)
 class SearchMaster(typ.Generic[Sc_co], abc.ABC):
     """A class that manages a search server."""
 
+    from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
+
     _timeout: float = 300
     _server_proc: None | subprocess.Popen = None
     _allow_existing_server: bool = False
@@ -97,6 +98,8 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
         free_resources: bool = False,
         dockerMemoryLogger: DockerMemoryLogger | None = None,
     ) -> None:
+        from vod_benchmarking.functions_benchmark import Timer
+
         self.skip_setup = skip_setup
         self.free_resources = free_resources
         self.timerBuildIndex = Timer()
@@ -126,9 +129,7 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
             time.sleep(1)
         self._on_init()
 
-    def __exit__(
-        self, exc_type: typ.Any, exc_val: typ.Any, exc_tb: typ.Any
-    ) -> None:  # noqa: ANN401
+    def __exit__(self, exc_type: typ.Any, exc_val: typ.Any, exc_tb: typ.Any) -> None:  # noqa: ANN401
         """Kill the server."""
         self._on_exit()
         if self._server_proc is not None:
@@ -190,9 +191,7 @@ class SearchMaster(typ.Generic[Sc_co], abc.ABC):
             time.sleep(0.1)
             if time.time() - t0 > self._timeout:
                 server_proc.terminate()
-                raise TimeoutError(
-                    f"Couldn't ping the server after {self._timeout:.0f}s."
-                )
+                raise TimeoutError(f"Couldn't ping the server after {self._timeout:.0f}s.")
         loguru.logger.debug(f"Spawned {self.service_info} in {time.time() - t0:.1f}s.")
         return server_proc
 

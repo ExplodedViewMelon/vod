@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-def get_and_prepare_newest_file():
+def get_and_prepare_file(index: int = -1) -> pd.DataFrame:
     folder_path = "/Users/oas/Downloads/benchmarking_results"
     # folder_path = "/Users/oas/Documents/VOD/vod/benchmarking_results"
     files = [
@@ -57,7 +57,7 @@ def get_and_prepare_newest_file():
     return df_results
 
 
-df_results = get_and_prepare_newest_file()
+df_results = get_and_prepare_file()
 print(df_results.columns)
 print(df_results.head())
 
@@ -81,7 +81,29 @@ import seaborn as sns
 # plt.xlabel("Search speed (ms)")
 # plt.show()
 
-df_plot = df_results[df_results.Compression.str[:2] == "PQ"].query("IndexType == 'HNSW'")
+# HNSW SQ SWEEP
+df_plot = df_results[df_results.Compression.str[:2] == "SQ"].query("IndexType == 'HNSW'")
+sns.scatterplot(
+    data=df_plot,
+    x="SearchSpeedAverage",
+    y="RecallAt1000Mean",
+    style="Compression",
+    hue="TimerBuildIndexMean",
+    palette="flare",
+    s=70,
+)
+for line in range(df_plot.shape[0]):
+    point = df_plot.iloc[line]
+    plt.text(point["SearchSpeedAverage"], point["RecallAt1000Mean"], f"   {point['M']}", fontsize=9)
+plt.title("Faiss HNSW SQ SWEEP")
+plt.ylabel("Recall")
+plt.xlabel("Search speed (ms)")
+plt.show()
+
+
+df_results = get_and_prepare_file(index=-2)
+# HNSW SQ SWEEP FOR SIFT
+df_plot = df_results[df_results.Compression.str[:2] == "SQ"].query("IndexType == 'HNSW'")
 sns.scatterplot(
     data=df_plot,
     x="SearchSpeedAverage",

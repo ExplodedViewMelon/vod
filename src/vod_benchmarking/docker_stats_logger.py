@@ -8,6 +8,8 @@ import subprocess
 import threading
 import os
 import warnings
+from numpy import ndarray
+from typing import Tuple
 
 # DONE implement function for making plots
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -187,7 +189,7 @@ class DockerMemoryLogger:
         df["MEMORY_USAGE_MB"] = df["MEM USAGE / LIMIT"].apply(convert_memory_usage)
         return df
 
-    def get_statistics(self) -> dict[str, float]:
+    def get_statistics(self) -> Tuple[ndarray, ndarray, ndarray]:
         df = self.get_data()
 
         # only measure the memory consumption of the process that we are benchmark
@@ -197,26 +199,30 @@ class DockerMemoryLogger:
         # get cummulative of each process, if multiple
         df = df.groupby("TIMESTAMP").sum()
 
-        df_baseline = df.query(
+        df_baseline: pd.Series = df.query(
             f"TIMESTAMP > '{self.begin_baseline}' and TIMESTAMP < '{self.done_baseline}'"
         ).MEMORY_USAGE_MB
-        df_ingesting = df.query(
+        df_ingesting: pd.Series = df.query(
             f"TIMESTAMP > '{self.begin_ingesting}' and TIMESTAMP < '{self.done_ingesting}'"
         ).MEMORY_USAGE_MB
-        df_benchmarking = df.query(
+        df_benchmarking: pd.Series = df.query(
             f"TIMESTAMP > '{self.begin_benchmarking}' and TIMESTAMP < '{self.done_benchmarking}'"
         ).MEMORY_USAGE_MB
 
-        # get either milvus or qdrant here. or faiss.
+        return (
+            df_baseline.to_numpy(),
+            df_ingesting.to_numpy(),
+            df_benchmarking.to_numpy(),
+        )
 
-        return {
-            "baselineMax": df_baseline.max(),
-            "baselineMean": df_baseline.mean(),
-            "ingestingMax": df_ingesting.max(),
-            "ingestingMean": df_ingesting.mean(),
-            "benchmarkingMax": df_benchmarking.max(),
-            "benchmarkingMean": df_benchmarking.mean(),
-        }
+        # return {
+        #     "memoryBaselineMax": df_baseline.max(),
+        #     "memoryBaselineMean": df_baseline.mean(),
+        #     "memoryIngestingMax": df_ingesting.max(),
+        #     "memoryIngestingMean": df_ingesting.mean(),
+        #     "memoryBenchmarkingMax": df_benchmarking.max(),
+        #     "memoryBenchmarkingMean": df_benchmarking.mean(),
+        # }
 
 
 # if __name__ == "__main__":

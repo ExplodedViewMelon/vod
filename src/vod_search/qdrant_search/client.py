@@ -24,15 +24,14 @@ from vod_search import base
 from vod_tools import pretty
 
 from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
+from vod_benchmarking.models import *
 
-from vod_search.models import *
+from vod_benchmarking.models import IndexParameters
 
 QDRANT_SUBSET_ID_KEY: str = "_SUBSET_ID_"
 
 
-def _init_client(
-    host: str, port: int, grpc_port: None | int, **kwargs: Any
-) -> qdrant_client.QdrantClient:
+def _init_client(host: str, port: int, grpc_port: None | int, **kwargs: Any) -> qdrant_client.QdrantClient:
     """Initialize the client."""
     try:
         return qdrant_client.QdrantClient(
@@ -150,9 +149,7 @@ class QdrantSearchClient(base.SearchClient):
                 qdrm.SearchRequest(
                     limit=top_k,
                     vector=vector[i].tolist(),
-                    filter=(
-                        _get_filter(subset_ids[i]) if subset_ids is not None else None
-                    ),
+                    filter=(_get_filter(subset_ids[i]) if subset_ids is not None else None),
                     with_payload=False,
                     params=self.search_params,
                 )
@@ -163,9 +160,7 @@ class QdrantSearchClient(base.SearchClient):
 
 
 @numba.jit(forceobj=True, looplift=True)
-def _search_batch_to_rdtypes(
-    batch: list[list[qdrm.ScoredPoint]], top_k: int
-) -> vt.RetrievalBatch:
+def _search_batch_to_rdtypes(batch: list[list[qdrm.ScoredPoint]], top_k: int) -> vt.RetrievalBatch:
     """Convert a batch of search results to rdtypes."""
     scores = np.full((len(batch), top_k), -np.inf, dtype=np.float32)
     indices = np.full((len(batch), top_k), -1, dtype=np.int64)
@@ -235,12 +230,8 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         self._force_single_collection = force_single_collection
 
         # unpack search parameters
-        assert isinstance(
-            index_parameters.index_type, HNSW
-        ), "Qdrant only supports HNSW"
-        self._search_params = qdrm.SearchParams(
-            hnsw_ef=index_parameters.index_type.ef_search
-        )
+        assert isinstance(index_parameters.index_type, HNSW), "Qdrant only supports HNSW"
+        self._search_params = qdrm.SearchParams(hnsw_ef=index_parameters.index_type.ef_search)
 
     @property
     def supports_groups(self) -> bool:
@@ -298,15 +289,11 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
         # Check whether the index exist
         index_exist = _collection_exists(client, self._index_name)
         if index_exist and not self._exist_ok:
-            raise FileNotFoundError(
-                f"{_collection_name(self._index_name, escape_rich=False)}: already exists."
-            )
+            raise FileNotFoundError(f"{_collection_name(self._index_name, escape_rich=False)}: already exists.")
 
         # Validate the index and delete if necessary
         if index_exist:
-            valid_status = _validate(
-                client, self._index_name, self._vectors, raise_if_invalid=True
-            )
+            valid_status = _validate(client, self._index_name, self._vectors, raise_if_invalid=True)
             if not valid_status.valid:
                 logger.warning(
                     f"{_collection_name(self._index_name, escape_rich=False)}: "
@@ -323,9 +310,7 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
             # body = _make_qdrant_body(vshp[-1], self._qdrant_body)
             body = _make_index_parameters(vshp[-1], self.index_parameters)
             # NOTE specifically setting shard_number to 1 to ensure a fair benchmark
-            client.recreate_collection(
-                collection_name=self._index_name, **body, shard_number=1
-            )
+            client.recreate_collection(collection_name=self._index_name, **body, shard_number=1)
 
             with DisableIndexing(client, self._index_name, delete_on_exception=True):
                 _ingest_data(
@@ -348,16 +333,14 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
 
     def _free_resources(self) -> None:
         client = _init_client(self._host, self._port, self._grpc_port)
-        with status.Status(
-            f"{_collection_name(self._index_name)}: Deleting other indices.."
-        ):
+        with status.Status(f"{_collection_name(self._index_name)}: Deleting other indices.."):
             logger.debug(f"Freeing resources for Qdrant[{_get_client_url(client)}]")
             _delete_except([self._index_name], client)
             while not self.get_client().ping():
                 time.sleep(0.05)
 
     def __repr__(self) -> str:
-        return f"index: qdrant {self.index_parameters}"
+        return f"qdrant"
 
 
 def _validate(
@@ -368,10 +351,7 @@ def _validate(
 ) -> IndexValidationStatus:
     """Validate the index."""
     with status.Status(f"{_collection_name(collection_name)}: Validating.."):
-        while (
-            client.get_collection(collection_name=collection_name).status
-            != qdrm.CollectionStatus.GREEN
-        ):
+        while client.get_collection(collection_name=collection_name).status != qdrm.CollectionStatus.GREEN:
             time.sleep(0.05)
         count = client.count(collection_name=collection_name).count
         if count != len(vectors):
@@ -391,9 +371,7 @@ def _validate(
 def _delete_except(exclude_list: list[str], client: qdrant_client.QdrantClient) -> None:
     for col in client.get_collections().collections:
         if col.name not in exclude_list:
-            logger.debug(
-                f"Qdrant: Deleting collection {_get_client_url(client)}/{col.name}`"
-            )
+            logger.debug(f"Qdrant: Deleting collection {_get_client_url(client)}/{col.name}`")
             client.delete_collection(collection_name=col.name)
 
 
@@ -404,9 +382,7 @@ def _get_client_url(client: qdrant_client.QdrantClient) -> str:
     return "local"
 
 
-def _collection_exists(
-    client: qdrant_client.QdrantClient, collection_name: str
-) -> bool:
+def _collection_exists(client: qdrant_client.QdrantClient, collection_name: str) -> bool:
     try:
         client.get_collection(collection_name=collection_name)
         index_exist = True
@@ -439,27 +415,19 @@ class DisableIndexing:
         self.delete_on_exception = delete_on_exception
 
     def __enter__(self) -> None:
-        collection_info = self._client.get_collection(
-            collection_name=self._collection_name
-        )
+        collection_info = self._client.get_collection(collection_name=self._collection_name)
         self._opt_config = collection_info.config.optimizer_config
         if self._opt_config is None:
-            raise Exception(
-                f"No optimizer config for collection `{self._collection_name}`"
-            )
+            raise Exception(f"No optimizer config for collection `{self._collection_name}`")
         self._client.update_collection(
             collection_name=self._collection_name,
             optimizers_config={"indexing_threshold": 0},  # type: ignore
         )
 
-    def __exit__(
-        self, exc_type: Any, exc_value: Any, traceback: Any
-    ) -> None:  # noqa: ANN401
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:  # noqa: ANN401
         if exc_type is not None and self.delete_on_exception:
             self._client.delete_collection(collection_name=self._collection_name)
-            raise Exception(
-                f"Collection `{self._collection_name}` deleted due to {exc_type}"
-            ) from exc_value
+            raise Exception(f"Collection `{self._collection_name}` deleted due to {exc_type}") from exc_value
 
         with status.Status(f"{_collection_name(self._collection_name)}: indexing..."):
             self._client.update_collection(
@@ -473,9 +441,7 @@ def _make_index_parameters(dim: int, index_parameters: IndexParameters):
 
     assert isinstance(index_parameters.index_type, HNSW), "qdrant only supports HNSW"
 
-    distance_metric = (
-        qdrm.Distance.EUCLID
-    )  # map distance to qdrants notation (it's just capitalized words in the end)
+    distance_metric = qdrm.Distance.EUCLID  # map distance to qdrants notation (it's just capitalized words in the end)
     if index_parameters.metric == "L2":
         distance_metric = qdrm.Distance.EUCLID
     elif index_parameters.metric == "COSINE":
@@ -491,9 +457,7 @@ def _make_index_parameters(dim: int, index_parameters: IndexParameters):
         )
     elif isinstance(index_parameters.preprocessing, ProductQuantization):
         quantization_config = qdrm.ProductQuantization(
-            product=qdrm.ProductQuantizationConfig(
-                compression=qdrm.CompressionRatio.X4
-            )  # TODO figure this compression
+            product=qdrm.ProductQuantizationConfig(compression=qdrm.CompressionRatio.X4)  # TODO figure this compression
         )
     else:
         quantization_config = None

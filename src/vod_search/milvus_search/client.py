@@ -1,4 +1,8 @@
 from __future__ import annotations
+
+from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
+from vod_benchmarking.models import IndexParameters
+
 import subprocess
 from typing import Any, Optional
 
@@ -29,9 +33,6 @@ from pymilvus import (
 from loguru import logger
 from typing import Any, Iterable, Optional
 from rich.progress import track
-
-from vod_search.models import *
-from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
 
 
 class MilvusSearchClient(base.SearchClient):
@@ -147,9 +148,7 @@ def _search_batch_to_rdtypes(batch: SearchResult, top_k: int) -> vt.RetrievalBat
 class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
     """A class that manages a search server."""
 
-    _timeout: float = (
-        30 * 60
-    )  # extended timeout to allow for downloading milvus docker image
+    _timeout: float = 30 * 60  # extended timeout to allow for downloading milvus docker image
     # _allow_existing_server: bool = True
     _allow_existing_server: bool = False  # NOTE only disabled because of benchmarking
 
@@ -194,9 +193,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         subprocess.run(["docker", "compose", "down", "-v"], env=self._make_env())
 
     def get_client(self) -> MilvusSearchClient:
-        return MilvusSearchClient(
-            host=self.host, port=self.port, master=self, collection=self.collection
-        )
+        return MilvusSearchClient(host=self.host, port=self.port, master=self, collection=self.collection)
 
     def _make_cmd(self) -> list[str]:
         return [
@@ -218,9 +215,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             collection.drop()
 
     def _make_index_parameters(self):
-        preprocessing: None | ProductQuantization | ScalarQuantization = (
-            self.index_parameters.preprocessing
-        )
+        preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
         index_type: HNSW | IVF = self.index_parameters.index_type
 
         if self.index_parameters.metric == "DOT":
@@ -279,16 +274,12 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
         index_parameters = self._make_index_parameters()
 
         fields = [
-            FieldSchema(
-                name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False
-            ),
+            FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
             FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=D),
         ]
         schema = CollectionSchema(fields, "Milvus database - so far so good")
         # NOTE specifically setting number of shards to 1 to ensure fair benchmarking
-        collection = Collection(
-            "index_name", schema, consistency_level="Strong", num_shards=1
-        )
+        collection = Collection("index_name", schema, consistency_level="Strong", num_shards=1)
 
         for j in track(
             range(0, N, self.batch_size),
@@ -312,4 +303,4 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
             self.dockerMemoryLogger.set_done_ingesting()
 
     def __repr__(self) -> str:
-        return f"index: milvus {self.index_parameters}"
+        return f"milvus"

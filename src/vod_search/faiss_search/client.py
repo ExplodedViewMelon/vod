@@ -1,22 +1,20 @@
-import os
-import sys
-import time
-from copy import copy
-from pathlib import Path
-
-import numpy as np
-import requests
-import rich
+from vod_benchmarking.models import IndexParameters
 from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
 import vod_types as vt
 from vod_search import base, faiss_search, io
 from vod_search.socket import find_available_port
 
-from vod_search.models import *
-
+import os
+import sys
+import time
+from copy import copy
+from pathlib import Path
+import numpy as np
+import requests
+import rich
 import faiss
 import tempfile
-import os
+import abc
 
 # get the path to the server script
 server_run_path = Path(__file__).parent / "server.py"
@@ -106,9 +104,7 @@ class FaissClient(base.SearchClient):
             "vectors": serialized_vectors,
             "top_k": top_k,
         }
-        response = requests.post(
-            f"{self.url}/fast-search", json=payload, timeout=timeout
-        )
+        response = requests.post(f"{self.url}/fast-search", json=payload, timeout=timeout)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as exc:
@@ -134,7 +130,7 @@ class FaissClient(base.SearchClient):
             raise exc
 
 
-class FaissMaster(base.SearchMaster[FaissClient]):
+class FaissMaster(base.SearchMaster[FaissClient], abc.ABC):
     """The Faiss master client is responsible for spawning and killing the Faiss server.
 
     ```python
@@ -167,7 +163,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
             dockerMemoryLogger=dockerMemoryLogger,
         )
         self.vectors: np.ndarray = vectors
-        self.index_parameters = index_parameters
+        self.index_parameters: IndexParameters = index_parameters
         self.logging_level = logging_level
         self.host = host
         if port < 0:
@@ -264,9 +260,7 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         return super().service_name + f"-{self.port}"
 
     def _get_factory_string(self):
-        preprocessing: None | ProductQuantization | ScalarQuantization = (
-            self.index_parameters.preprocessing
-        )
+        preprocessing: None | ProductQuantization | ScalarQuantization = self.index_parameters.preprocessing
         index_type: HNSW | IVF = self.index_parameters.index_type
 
         if isinstance(index_type, IVF):  # TODO move n_probe to search
@@ -297,22 +291,16 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         # and preferably around 40 times larger
         if isinstance(self.index_parameters.index_type, IVF):
             batch_size = self.vectors.shape[0] // self.num_batches
-            min_batch_size = (
-                self.index_parameters.index_type.n_partition * 40
-            )  #  * 10  # this seems to be optimal
+            min_batch_size = self.index_parameters.index_type.n_partition * 40  #  * 10  # this seems to be optimal
             if min_batch_size > batch_size:
-                print(
-                    "(faiss) Changing batch size for optimizating IVF index construction"
-                )
+                print("(faiss) Changing batch size for optimizating IVF index construction")
                 print("From", batch_size, "to", min_batch_size)
                 self.num_batches = self.vectors.shape[0] // min_batch_size
         if isinstance(self.index_parameters.preprocessing, ProductQuantization):
             batch_size = self.vectors.shape[0] // self.num_batches
             min_batch_size = 2**self.index_parameters.preprocessing.m * 40
             if min_batch_size > batch_size:
-                print(
-                    "(faiss) Changing batch size for optimizating product quantization index construction"
-                )
+                print("(faiss) Changing batch size for optimizating product quantization index construction")
                 print("From", batch_size, "to", min_batch_size)
                 self.num_batches = self.vectors.shape[0] // min_batch_size
 
@@ -347,4 +335,4 @@ class FaissMaster(base.SearchMaster[FaissClient]):
         return super()._on_exit()
 
     def __repr__(self) -> str:
-        return f"index: faiss {self.index_parameters}"
+        return f"faiss"
