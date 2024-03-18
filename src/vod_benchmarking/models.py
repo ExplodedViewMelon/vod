@@ -103,6 +103,22 @@ class BenchmarkSpecificationSingle:
         self.n_warmup_batches = self.n_test_batches // 5  # warmup using one fifth of training data size
         self.n_query_vectors = self.n_warmup_batches + self.n_test_batches  # total number of non-train vectors
 
+    def print_summary(self) -> str:
+        return (
+            f"BenchmarkSpecificationSingle("
+            f"indexProviderClass={self.indexProviderClass.get_name()}, "
+            f"datasetClass={self.datasetClass!r}, "
+            f"indexParameters={self.indexParameters!r}, "
+            f"batch_size={self.batch_size}, "
+            f"n_test_batches={self.n_test_batches}, "
+            f"query_top_k_results={self.query_top_k_results}, "
+            f"timeout_index_build={self.timeout_index_build}, "
+            f"timeout_benchmark={self.timeout_benchmark}, "
+            f"n_warmup_batches={self.n_warmup_batches}, "
+            f"n_query_vectors={self.n_query_vectors}"
+            f")"
+        )
+
 
 class BenchmarkSpecificationsBatch:
     def __init__(
@@ -233,11 +249,14 @@ class BenchmarkingResults:
             "label": [self.benchSpecification.label],
             "indexProvider": [self.benchSpecification.indexProviderClass.get_name()],
             "indexType": [self.benchSpecification.indexParameters.index_type],
-            "M": [self.benchSpecification.indexParameters.index_type.M],  # type: ignore
-            "efSearch": [self.benchSpecification.indexParameters.index_type.ef_search],  # type: ignore
-            "efConstruction": [self.benchSpecification.indexParameters.index_type.ef_construction],  # type: ignore
-            "nPartitions": [self.benchSpecification.indexParameters.index_type.n_partition],  # type: ignore
-            "nProbe": [self.benchSpecification.indexParameters.index_type.n_probe],  # type: ignore
+            # disable black formatter for the following lines
+            # fmt: off
+            "M": [self.benchSpecification.indexParameters.index_type.M if hasattr(self.benchSpecification.indexParameters.index_type, 'M') else -1],
+            "efSearch": [self.benchSpecification.indexParameters.index_type.ef_search if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_search') else -1],
+            "efConstruction": [self.benchSpecification.indexParameters.index_type.ef_construction if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_construction') else -1],
+            "nPartitions": [self.benchSpecification.indexParameters.index_type.n_partition if hasattr(self.benchSpecification.indexParameters.index_type, 'n_partition') else -1],
+            "nProbe": [self.benchSpecification.indexParameters.index_type.n_probe if hasattr(self.benchSpecification.indexParameters.index_type, 'n_probe') else -1],
+            # fmt: on
             "preprocessing": [self.benchSpecification.indexParameters.preprocessing],
             "distanceMetric": [self.benchSpecification.indexParameters.metric],
             "timingBuildIndex": [self.timingBuildIndex],

@@ -65,6 +65,9 @@ for benchmarkSpecifications in benchmarkSpecificationsBatch:
     benchmarkingResultsAll = pd.DataFrame()
     # run benchmark
     for benchmarkSpecification in benchmarkSpecifications:
+        print("Running benchmark")
+        benchmarkSpecification.print_summary()
+
         benchmarkResults = run_benchmark(benchmarkSpecification).to_pandas()
         # save parameters
         benchmarkingResultsAll = pd.concat([benchmarkingResultsAll, benchmarkResults], ignore_index=True)

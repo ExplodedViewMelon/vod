@@ -239,6 +239,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
         if dockerMemoryLogger:
             dockerMemoryLogger.stop_logging()
         return BenchmarkingResults(
+            bs,
             -1,
             -1,
             -1,
