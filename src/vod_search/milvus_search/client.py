@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
-from vod_benchmarking.models import IndexParameters
+from vod_benchmarking.models import *
 
 import subprocess
 from typing import Any, Optional

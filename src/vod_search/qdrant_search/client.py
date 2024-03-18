@@ -1,3 +1,6 @@
+from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
+from vod_benchmarking.models import *
+
 import abc
 import copy
 import dataclasses
@@ -23,10 +26,6 @@ from rich.progress import track
 from vod_search import base
 from vod_tools import pretty
 
-from vod_benchmarking.docker_stats_logger import DockerMemoryLogger
-from vod_benchmarking.models import *
-
-from vod_benchmarking.models import IndexParameters
 
 QDRANT_SUBSET_ID_KEY: str = "_SUBSET_ID_"
 
