@@ -17,6 +17,24 @@ import os
 
 benchmarkSpecificationsBatch = [
     BenchmarkSpecificationsBatch(
+        label="Faiss_PQ8_Optimization",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+        ],
+        datasetClasses=[
+            DatasetSift1M,
+        ],
+        indexTypes=[
+            IVF(n_partition=256, n_probe=32),
+        ],
+        preprocessings=[
+            ProductQuantization(m=16),
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
         label="testBatch",
         indexProviderClasses=[
             faiss_search.FaissMaster,
@@ -32,24 +50,6 @@ benchmarkSpecificationsBatch = [
         ],
         preprocessings=[
             None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
-    BenchmarkSpecificationsBatch(
-        label="Faiss_PQ8_Optimization",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-        ],
-        indexTypes=[
-            IVF(n_partition=256, n_probe=32),
-        ],
-        preprocessings=[
-            ProductQuantization(m=16),
         ],
         distanceMetrics=[
             DistanceMetric.L2,
