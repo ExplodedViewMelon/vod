@@ -341,6 +341,10 @@ class QdrantSearchMaster(base.SearchMaster[QdrantSearchClient], abc.ABC):
     def __repr__(self) -> str:
         return f"qdrant"
 
+    @staticmethod
+    def get_name() -> str:
+        return "qdrant"
+
 
 def _validate(
     client: qdrant_client.QdrantClient,

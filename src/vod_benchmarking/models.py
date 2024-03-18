@@ -194,6 +194,7 @@ class BenchmarkSpecificationsBatch:
 class BenchmarkingResults:
     def __init__(
         self,
+        benchmarkSpecification: BenchmarkSpecificationSingle,
         timingBuildIndex: float,
         timingServerStartup: float,
         timerBatchSearchMean: float,
@@ -210,6 +211,7 @@ class BenchmarkingResults:
         allMemoryLogsBaseline: np.ndarray,
         allTimingsSearch: List[float],
     ):
+        self.benchSpecification = benchmarkSpecification
         self.timingBuildIndex = timingBuildIndex
         self.timingServerStartup = timingServerStartup
         self.timerBatchSearchMean = timerBatchSearchMean
@@ -228,6 +230,16 @@ class BenchmarkingResults:
 
     def to_pandas(self) -> pd.DataFrame:
         data = {
+            "label": [self.benchSpecification.label],
+            "indexProvider": [self.benchSpecification.indexProviderClass.get_name()],
+            "indexType": [self.benchSpecification.indexParameters.index_type],
+            "M": [self.benchSpecification.indexParameters.index_type.M],  # type: ignore
+            "efSearch": [self.benchSpecification.indexParameters.index_type.ef_search],  # type: ignore
+            "efConstruction": [self.benchSpecification.indexParameters.index_type.ef_construction],  # type: ignore
+            "nPartitions": [self.benchSpecification.indexParameters.index_type.n_partition],  # type: ignore
+            "nProbe": [self.benchSpecification.indexParameters.index_type.n_probe],  # type: ignore
+            "preprocessing": [self.benchSpecification.indexParameters.preprocessing],
+            "distanceMetric": [self.benchSpecification.indexParameters.metric],
             "timingBuildIndex": [self.timingBuildIndex],
             "timingServerStartup": [self.timingServerStartup],
             "timingsSearch": [self.timerBatchSearchMean],

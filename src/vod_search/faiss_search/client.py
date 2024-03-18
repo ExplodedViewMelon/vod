@@ -337,3 +337,7 @@ class FaissMaster(base.SearchMaster[FaissClient], abc.ABC):
 
     def __repr__(self) -> str:
         return f"faiss"
+
+    @staticmethod
+    def get_name() -> str:
+        return "faiss"

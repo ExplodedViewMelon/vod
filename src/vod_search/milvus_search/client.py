@@ -304,3 +304,7 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
 
     def __repr__(self) -> str:
         return f"milvus"
+
+    @staticmethod
+    def get_name() -> str:
+        return "milvus"

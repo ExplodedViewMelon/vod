@@ -17,29 +17,47 @@ import os
 
 benchmarkSpecificationsBatch = [
     BenchmarkSpecificationsBatch(
-        label="testBatch",
+        label="testResultsDataframe",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            qdrant_search.QdrantSearchMaster,
-            milvus_search.MilvusSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
         ],
         indexTypes=[
             IVF(n_partition=256, n_probe=32),
-            HNSW(M=16, ef_construction=32, ef_search=128),
         ],
         preprocessings=[
             None,
-            ProductQuantization(m=8),
-            ScalarQuantization(n=8),
         ],
         distanceMetrics=[
             DistanceMetric.L2,
-            DistanceMetric.DOT,
         ],
     ),
+    # BenchmarkSpecificationsBatch(
+    #     label="testBatch",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #     ],
+    #     indexTypes=[
+    #         IVF(n_partition=256, n_probe=32),
+    #         HNSW(M=16, ef_construction=32, ef_search=128),
+    #     ],
+    #     preprocessings=[
+    #         None,
+    #         ProductQuantization(m=8),
+    #         ScalarQuantization(n=8),
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #         DistanceMetric.DOT,
+    #     ],
+    # ),
 ]
 
 for benchmarkSpecifications in benchmarkSpecificationsBatch:
