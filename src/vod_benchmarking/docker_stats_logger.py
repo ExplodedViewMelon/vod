@@ -192,8 +192,8 @@ class DockerMemoryLogger:
     def get_statistics(self) -> Tuple[ndarray, ndarray, ndarray]:
         df = self.get_data()
 
-        # only measure the memory consumption of the process that we are benchmark
-        df = df[df["NAME"].str.split("-").str[0] == self.searchMasterName]
+        # # only measure the memory consumption of the process that we are benchmark
+        # df = df[df["NAME"].str.split("-").str[0] == self.searchMasterName]
         assert len(df), "docker memory logger has no entries"
 
         # get cummulative of each process, if multiple

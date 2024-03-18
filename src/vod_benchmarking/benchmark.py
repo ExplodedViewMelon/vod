@@ -19,8 +19,8 @@ import os
 
 indexProviderClasses = [
     faiss_search.FaissMaster,
-    # qdrant_search.QdrantSearchMaster,
-    # milvus_search.MilvusSearchMaster,
+    qdrant_search.QdrantSearchMaster,
+    milvus_search.MilvusSearchMaster,
 ]
 
 preprocessings = [
@@ -35,9 +35,9 @@ preprocessings = [
 
 indexTypes = [
     IVF(n_partition=256, n_probe=32),
-    IVF(n_partition=512, n_probe=64),
+    # IVF(n_partition=512, n_probe=64),
     # HNSW(M=8, ef_construction=16, ef_search=128),
-    # HNSW(M=16, ef_construction=32, ef_search=128),
+    HNSW(M=16, ef_construction=32, ef_search=128),
 ]
 distanceMetrics = [
     DistanceMetric.L2,
