@@ -10,6 +10,7 @@ import os
 import warnings
 from numpy import ndarray
 from typing import Tuple
+import random
 
 # DONE implement function for making plots
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -19,16 +20,10 @@ class DockerMemoryLogger:
     def __init__(
         self,
         timestamp: str,
-        index_specification: str,
-        searchMasterName: str,
         *,
         overwrite_logs: bool = True,
         timeout=600,
     ):
-        self.index_specification: str = (
-            f"{searchMasterName}_{index_specification.replace(', ', '_')}"  # remove spaces and append search master name
-        )
-        self.searchMasterName = searchMasterName
         self.folder_path: str = f"./docker_memory_logs/{timestamp}/"
         self.begin_baseline: str = "-1"
         self.done_baseline: str = "-1"
@@ -37,6 +32,8 @@ class DockerMemoryLogger:
         self.begin_benchmarking: str = "-1"
         self.done_benchmarking: str = "-1"
         self.timeout: int = timeout
+
+        self.index_specification = str(random.randint(0, 1000000))
         self.path_to_log = f"{self.folder_path}{self.index_specification}.csv"
 
         # Create folder if it does not exist

@@ -141,8 +141,6 @@ def run_benchmark(bs: BenchmarkSpecificationSingle):
         # begin logging memory consumption
         dockerMemoryLogger = DockerMemoryLogger(
             timestamp=TIMESTAMP,
-            index_specification=f"{bs.indexParameters}",
-            searchMasterName=f"{bs.indexProviderClass}",
             timeout=bs.timeout_benchmark,
         )
 
