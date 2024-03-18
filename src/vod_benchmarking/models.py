@@ -173,7 +173,7 @@ class BenchmarkSpecificationsBatch:
                             # make index parameter object to be passed to searchmaster
                             indexParameters = IndexParameters(
                                 index_type=indexType,
-                                metric=distance_metric,
+                                metric=distance_metric.value,  # unpack enum
                                 preprocessing=preprocessing,
                                 top_k=self.query_top_k_results,
                             )
@@ -196,15 +196,19 @@ class BenchmarkingResults:
         self,
         timingBuildIndex: float,
         timingServerStartup: float,
-        timingsSearch: List[float],
+        timingsSearch: float,
         recall: float,
         recall_at_1: float,
         recall_at_10: float,
         recall_at_100: float,
         recall_at_1000: float,
-        memoryLogsBaseline: np.ndarray,
-        memoryLogsIngesting: np.ndarray,
-        memoryLogsBenchmark: np.ndarray,
+        memoryBenchmark: float,
+        memoryIngesting: float,
+        memoryBaseline: float,
+        allMemoryLogsBenchmark: np.ndarray,
+        allMemoryLogsIngesting: np.ndarray,
+        allMemoryLogsBaseline: np.ndarray,
+        allTimingsSearch: List[float],
     ):
         self.timingBuildIndex = timingBuildIndex
         self.timingServerStartup = timingServerStartup
@@ -214,9 +218,13 @@ class BenchmarkingResults:
         self.recall_at_10 = recall_at_10
         self.recall_at_100 = recall_at_100
         self.recall_at_1000 = recall_at_1000
-        self.memoryLogsBaseline = memoryLogsBaseline
-        self.memoryLogsIngesting = memoryLogsIngesting
-        self.memoryLogsBenchmark = memoryLogsBenchmark
+        self.memoryBenchmark = memoryBenchmark
+        self.memoryIngesting = memoryIngesting
+        self.memoryBaseline = memoryBaseline
+        self.allMemoryLogsBenchmark = allMemoryLogsBenchmark
+        self.allMemoryLogsIngesting = allMemoryLogsIngesting
+        self.allMemoryLogsBaseline = allMemoryLogsBaseline
+        self.allTimingsSearch = allTimingsSearch
 
     def to_pandas(self) -> pd.DataFrame:
         data = {
@@ -228,8 +236,12 @@ class BenchmarkingResults:
             "recall_at_10": [self.recall_at_10],
             "recall_at_100": [self.recall_at_100],
             "recall_at_1000": [self.recall_at_1000],
-            "memoryLogsBaseline": [self.memoryLogsBaseline.tolist()],
-            "memoryLogsIngesting": [self.memoryLogsIngesting.tolist()],
-            "memoryLogsBenchmark": [self.memoryLogsBenchmark.tolist()],
+            "memoryBenchmark": [self.memoryBenchmark],
+            "memoryIngesting": [self.memoryIngesting],
+            "memoryBaseline": [self.memoryBaseline],
+            "allMemoryLogsBenchmark": [self.allMemoryLogsBenchmark.tolist()],
+            "allMemoryLogsIngesting": [self.allMemoryLogsIngesting.tolist()],
+            "allMemoryLogsBaseline": [self.allMemoryLogsBaseline.tolist()],
+            "allTimingsSearch": [self.allTimingsSearch],
         }
         return pd.DataFrame(data)

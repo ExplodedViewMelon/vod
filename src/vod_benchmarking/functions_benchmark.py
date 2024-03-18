@@ -217,15 +217,19 @@ def run_benchmark(bs: BenchmarkSpecificationSingle):
             return BenchmarkingResults(
                 master.timerBuildIndex.mean,
                 timerServerStartup.mean,
-                timerSearch.timings,
+                timerSearch.mean,
                 recall,
                 recall_at_1,
                 recall_at_10,
                 recall_at_100,
                 recall_at_1000,
+                memoryLogsBaseline.mean(),
+                memoryLogsIngesting.mean(),
+                memoryLogsBenchmark.mean(),
                 memoryLogsBaseline,
                 memoryLogsIngesting,
                 memoryLogsBenchmark,
+                timerSearch.timings,
             )
 
     except Exception:
@@ -233,16 +237,20 @@ def run_benchmark(bs: BenchmarkSpecificationSingle):
         print(tb)
         if dockerMemoryLogger:
             dockerMemoryLogger.stop_logging()
-        return BenchmarkingResults(
-            -1,
-            -1,
-            [-1],
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            np.array([-1]),
-            np.array([-1]),
-            np.array([-1]),
-        )
+            return BenchmarkingResults(
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                -1,
+                np.array([-1]),
+                np.array([-1]),
+                np.array([-1]),
+                [-1],
+            )

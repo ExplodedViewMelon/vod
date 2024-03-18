@@ -18,7 +18,7 @@ import os
 # SETUP
 
 indexProviderClasses = [
-    faiss_search.FaissMaster,
+    # faiss_search.FaissMaster,
     qdrant_search.QdrantSearchMaster,
     milvus_search.MilvusSearchMaster,
 ]
@@ -45,10 +45,10 @@ distanceMetrics = [
 ]
 
 datasetClasses = [
-    # DatasetSift1M,
     # DatasetGlove,  # the angular one
     # DatasetLastFM,
-    DatasetGIST,
+    DatasetSift1M,
+    # DatasetGIST,
 ]
 
 benchmarkSpecifications = BenchmarkSpecificationsBatch(
