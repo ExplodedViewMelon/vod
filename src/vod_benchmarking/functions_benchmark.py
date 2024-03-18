@@ -111,7 +111,7 @@ def stop_docker_containers():
     time.sleep(5)
 
 
-def run_benchmark(bs: BenchmarkSpecificationSingle):
+def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
     dockerMemoryLogger = None
     try:
         # init
@@ -237,20 +237,20 @@ def run_benchmark(bs: BenchmarkSpecificationSingle):
         print(tb)
         if dockerMemoryLogger:
             dockerMemoryLogger.stop_logging()
-            return BenchmarkingResults(
-                -1,
-                -1,
-                -1,
-                -1,
-                -1,
-                -1,
-                -1,
-                -1,
-                -1,
-                -1,
-                -1,
-                np.array([-1]),
-                np.array([-1]),
-                np.array([-1]),
-                [-1],
-            )
+        return BenchmarkingResults(
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            np.array([-1]),
+            np.array([-1]),
+            np.array([-1]),
+            [-1],
+        )

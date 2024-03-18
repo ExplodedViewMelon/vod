@@ -196,7 +196,7 @@ class BenchmarkingResults:
         self,
         timingBuildIndex: float,
         timingServerStartup: float,
-        timingsSearch: float,
+        timerBatchSearchMean: float,
         recall: float,
         recall_at_1: float,
         recall_at_10: float,
@@ -212,7 +212,7 @@ class BenchmarkingResults:
     ):
         self.timingBuildIndex = timingBuildIndex
         self.timingServerStartup = timingServerStartup
-        self.timingsSearch = timingsSearch
+        self.timerBatchSearchMean = timerBatchSearchMean
         self.recall = recall
         self.recall_at_1 = recall_at_1
         self.recall_at_10 = recall_at_10
@@ -230,7 +230,7 @@ class BenchmarkingResults:
         data = {
             "timingBuildIndex": [self.timingBuildIndex],
             "timingServerStartup": [self.timingServerStartup],
-            "timingsSearch": [self.timingsSearch],
+            "timingsSearch": [self.timerBatchSearchMean],
             "recall": [self.recall],
             "recall_at_1": [self.recall_at_1],
             "recall_at_10": [self.recall_at_10],
