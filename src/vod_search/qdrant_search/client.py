@@ -12,14 +12,14 @@ from typing import Any, Iterable, Optional
 
 import numba
 import numpy as np
-import qdrant_client
+import qdrant_client  # type:ignore
 import vod_types as vt
 from grpc import StatusCode
 from grpc._channel import _InactiveRpcError
 from loguru import logger
-from qdrant_client.http import exceptions as qdrexc
-from qdrant_client.http import models as qdrm
-from qdrant_client.qdrant_remote import QdrantRemote
+from qdrant_client.http import exceptions as qdrexc  # type:ignore
+from qdrant_client.http import models as qdrm  # type:ignore
+from qdrant_client.qdrant_remote import QdrantRemote  # type:ignore
 from rich import status
 from rich.markup import escape
 from rich.progress import track
@@ -109,7 +109,7 @@ class QdrantSearchClient(base.SearchClient):
         self.__dict__.update(state)
         self._client = _init_client(self.host, self.port, self.grpc_port)
 
-    def search(
+    def search(  # type:ignore
         self,
         *,
         text: None | list[str] = None,  # noqa: ARG002

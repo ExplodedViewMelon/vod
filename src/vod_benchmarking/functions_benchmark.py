@@ -21,6 +21,7 @@ from datetime import datetime
 from loguru import logger
 import time
 import signal
+import subprocess
 
 
 class Timer:
@@ -95,12 +96,10 @@ def timeout_handler(signum, frame):
 
 
 def stop_docker_containers():
-    import subprocess
-
     print("Stopping all docker processes...")
 
     subprocess.run(["docker", "compose", "down", "-v"])
-    time.sleep(5)
+    sleep(5)
     subprocess.run(
         [
             "docker",
@@ -108,7 +107,9 @@ def stop_docker_containers():
             *subprocess.run(["docker", "ps", "-aq"], capture_output=True, text=True).stdout.split(),
         ]
     )
-    time.sleep(5)
+    sleep(2)
+    subprocess.run(["sudo", "rm", "-rf", "volumes"])
+    sleep(2)
 
 
 def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
@@ -231,6 +232,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
                 memoryLogsIngesting,
                 memoryLogsBenchmark,
                 timerSearch.timings,
+                "",
             )
 
     except Exception:
@@ -238,21 +240,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
         print(tb)
         if dockerMemoryLogger:
             dockerMemoryLogger.stop_logging()
+        # return -1 for all values except bs and error
         return BenchmarkingResults(
-            bs,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            np.array([-1]),
-            np.array([-1]),
-            np.array([-1]),
-            [-1],
+            bs, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, np.array([-1]), np.array([-1]), np.array([-1]), [-1], tb
         )

@@ -86,7 +86,7 @@ class FaissClient(base.SearchClient):
     #         scores=data["scores"],
     #     )
 
-    def search(
+    def search(  # type:ignore
         self,
         *,
         vector: np.ndarray,

@@ -226,6 +226,7 @@ class BenchmarkingResults:
         allMemoryLogsIngesting: np.ndarray,
         allMemoryLogsBaseline: np.ndarray,
         allTimingsSearch: List[float],
+        error: str,
     ):
         self.benchSpecification = benchmarkSpecification
         self.timingBuildIndex = timingBuildIndex
@@ -243,21 +244,23 @@ class BenchmarkingResults:
         self.allMemoryLogsIngesting = allMemoryLogsIngesting
         self.allMemoryLogsBaseline = allMemoryLogsBaseline
         self.allTimingsSearch = allTimingsSearch
+        self.error = error
 
     def to_pandas(self) -> pd.DataFrame:
         data = {
             "label": [self.benchSpecification.label],
+            "error": [self.error[-20:]],
             "indexProvider": [self.benchSpecification.indexProviderClass.get_name()],
             "indexType": [self.benchSpecification.indexParameters.index_type],
             # disable black formatter for the following lines
             # fmt: off
-            "M": [self.benchSpecification.indexParameters.index_type.M if hasattr(self.benchSpecification.indexParameters.index_type, 'M') else None],
-            "efSearch": [self.benchSpecification.indexParameters.index_type.ef_search if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_search') else None],
-            "efConstruction": [self.benchSpecification.indexParameters.index_type.ef_construction if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_construction') else None],
-            "nPartitions": [self.benchSpecification.indexParameters.index_type.n_partition if hasattr(self.benchSpecification.indexParameters.index_type, 'n_partition') else None],
-            "nProbe": [self.benchSpecification.indexParameters.index_type.n_probe if hasattr(self.benchSpecification.indexParameters.index_type, 'n_probe') else None],
-            # fmt: on
+            "M": [self.benchSpecification.indexParameters.index_type.M if hasattr(self.benchSpecification.indexParameters.index_type, 'M') else None], #type:ignore
+            "efSearch": [self.benchSpecification.indexParameters.index_type.ef_search if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_search') else None], #type:ignore
+            "efConstruction": [self.benchSpecification.indexParameters.index_type.ef_construction if hasattr(self.benchSpecification.indexParameters.index_type, 'ef_construction') else None], #type:ignore
+            "nPartitions": [self.benchSpecification.indexParameters.index_type.n_partition if hasattr(self.benchSpecification.indexParameters.index_type, 'n_partition') else None], #type:ignore
+            "nProbe": [self.benchSpecification.indexParameters.index_type.n_probe if hasattr(self.benchSpecification.indexParameters.index_type, 'n_probe') else None], #type:ignore
             "preprocessing": [self.benchSpecification.indexParameters.preprocessing],
+            # fmt: on
             "distanceMetric": [self.benchSpecification.indexParameters.metric],
             "timingBuildIndex": [self.timingBuildIndex],
             "timingServerStartup": [self.timingServerStartup],
@@ -274,5 +277,6 @@ class BenchmarkingResults:
             "allMemoryLogsIngesting": [self.allMemoryLogsIngesting.tolist()],
             "allMemoryLogsBaseline": [self.allMemoryLogsBaseline.tolist()],
             "allTimingsSearch": [self.allTimingsSearch],
+            "fullError": [self.error],
         }
         return pd.DataFrame(data)

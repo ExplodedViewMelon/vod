@@ -20,7 +20,7 @@ from copy import copy
 import os
 import numpy as np
 from numpy import ndarray
-from pymilvus import (
+from pymilvus import (  # type:ignore
     SearchResult,
     connections,
     utility,
@@ -111,7 +111,7 @@ class MilvusSearchClient(base.SearchClient):
                 },
             }
 
-    def search(
+    def search(  # type:ignore
         self,
         *,
         vector: Optional[ndarray],
