@@ -19,9 +19,9 @@ from datetime import datetime
 import warnings
 
 # Ignore deprecation warnings
-warnings.filterwarnings("ignore", message="torch.utils._pytree._register_pytree_node is deprecated")
-warnings.filterwarnings("ignore", message="hashregister is deprecated")
-warnings.filterwarnings("ignore", message="The installed version of bitsandbytes")
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 
 benchmarkSpecificationsBatch = [
     # BenchmarkSpecificationsBatch(
