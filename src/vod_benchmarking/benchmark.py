@@ -37,9 +37,9 @@ benchmarkSpecificationsBatch = [
     BenchmarkSpecificationsBatch(
         label="testAllParameters",
         indexProviderClasses=[
+            milvus_search.MilvusSearchMaster,
             faiss_search.FaissMaster,
             qdrant_search.QdrantSearchMaster,
-            milvus_search.MilvusSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
