@@ -103,20 +103,19 @@ class BenchmarkSpecificationSingle:
         self.n_warmup_batches = self.n_test_batches // 5  # warmup using one fifth of training data size
         self.n_query_vectors = self.n_warmup_batches + self.n_test_batches  # total number of non-train vectors
 
-    def print_summary(self) -> str:
+    def get_summary(self) -> str:
         return (
-            f"BenchmarkSpecificationSingle("
-            f"indexProviderClass={self.indexProviderClass.get_name()}, "
-            f"datasetClass={self.datasetClass!r}, "
-            f"indexParameters={self.indexParameters!r}, "
-            f"batch_size={self.batch_size}, "
-            f"n_test_batches={self.n_test_batches}, "
-            f"query_top_k_results={self.query_top_k_results}, "
-            f"timeout_index_build={self.timeout_index_build}, "
-            f"timeout_benchmark={self.timeout_benchmark}, "
-            f"n_warmup_batches={self.n_warmup_batches}, "
+            f"Summary for {self.label}:\n"
+            f"indexProviderClass={self.indexProviderClass.get_name()},\n"
+            f"datasetClass={self.datasetClass!r},\n"
+            f"indexParameters={self.indexParameters!r},\n"
+            f"batch_size={self.batch_size},\n"
+            f"n_test_batches={self.n_test_batches},\n"
+            f"query_top_k_results={self.query_top_k_results},\n"
+            f"timeout_index_build={self.timeout_index_build},\n"
+            f"timeout_benchmark={self.timeout_benchmark},\n"
+            f"n_warmup_batches={self.n_warmup_batches},\n"
             f"n_query_vectors={self.n_query_vectors}"
-            f")"
         )
 
 

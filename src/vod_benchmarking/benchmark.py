@@ -14,6 +14,7 @@ from typing import List, Type
 import traceback
 import pandas as pd
 import os
+from datetime import datetime
 
 benchmarkSpecificationsBatch = [
     # BenchmarkSpecificationsBatch(
@@ -207,26 +208,22 @@ benchmarkSpecificationsBatch = [
     ),
 ]
 
-print(f"{len(benchmarkSpecificationsBatch)} batches planned")
-for benchmarkSpecifications in benchmarkSpecificationsBatch:
-    print(f"Running batch: {benchmarkSpecifications.label}")
-    benchmarkingResultsAll = pd.DataFrame()
-    # run benchmark
-    for benchmarkSpecification in benchmarkSpecifications:
-        print("Running benchmark")
-        benchmarkSpecification.print_summary()
+# make folder for results
+current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_directory = f"{os.getcwd()}/benchmarking_results/{current_time}"
+os.makedirs(output_directory, exist_ok=True)
 
+# loop over benchmark batches
+for benchmarkSpecifications in benchmarkSpecificationsBatch:
+    output_file = f"{output_directory}/{benchmarkSpecifications.label}.csv"
+    print(f"Saving results into {output_file}")
+    benchmarkingResultsAll = pd.DataFrame()
+
+    # loop over individual benchmarks
+    for benchmarkSpecification in benchmarkSpecifications:
+        print(benchmarkSpecification.get_summary())
         benchmarkResults = run_benchmark(benchmarkSpecification).to_pandas()
-        # save parameters
         benchmarkingResultsAll = pd.concat([benchmarkingResultsAll, benchmarkResults], ignore_index=True)
 
-    from datetime import datetime
-
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_directory = f"{os.getcwd()}/benchmarking_results/{current_time}"
-    os.makedirs(output_directory, exist_ok=True)
-    output_file = f"{output_directory}/{benchmarkSpecifications.label}.csv"
     benchmarkingResultsAll.to_csv(output_file)
-
-    print("Results")
     print(benchmarkingResultsAll)
