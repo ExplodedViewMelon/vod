@@ -220,7 +220,10 @@ for benchmarkSpecifications in benchmarkSpecificationsBatch:
         # save parameters
         benchmarkingResultsAll = pd.concat([benchmarkingResultsAll, benchmarkResults], ignore_index=True)
 
-    output_directory = f"{os.getcwd()}/benchmarking_results"
+    from datetime import datetime
+
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_directory = f"{os.getcwd()}/benchmarking_results/{current_time}"
     os.makedirs(output_directory, exist_ok=True)
     output_file = f"{output_directory}/{benchmarkSpecifications.label}.csv"
     benchmarkingResultsAll.to_csv(output_file)
