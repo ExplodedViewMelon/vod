@@ -1,3 +1,9 @@
+import warnings
+
+# Ignore deprecation warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 from vod_benchmarking.models import (
     HNSW,
     IVF,
@@ -15,12 +21,6 @@ import traceback
 import pandas as pd
 import os
 from datetime import datetime
-
-import warnings
-
-# Ignore deprecation warnings
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 benchmarkSpecificationsBatch = [
