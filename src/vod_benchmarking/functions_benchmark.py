@@ -141,6 +141,9 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
             bs.batch_size,
         )
 
+        # build ground truth index
+        index_ground_truth = NearestNeighbors(n_neighbors=bs.query_top_k_results, algorithm="brute").fit(index_vectors)  # type: ignore
+
         # begin logging memory consumption
         dockerMemoryLogger = DockerMemoryLogger(
             timestamp=TIMESTAMP,
@@ -191,9 +194,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
                 indices_pred = results.indices
 
                 # get true results
-                timerGroundTruth.begin()
-                indices_true = get_ground_truth(index_vectors, query_vectors[i], top_k=bs.query_top_k_results)
-                timerGroundTruth.end()
+                _, indices_true = index_ground_truth.kneighbors(query_vectors[i])
 
                 # save recalls
                 recalls.append(recall_batch(indices_pred, indices_true))
