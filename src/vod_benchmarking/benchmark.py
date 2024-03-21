@@ -271,6 +271,9 @@ current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 output_directory = f"{os.getcwd()}/benchmarking_results/{current_time}"
 os.makedirs(output_directory, exist_ok=True)
 
+# make dataframe for all results, across batches
+all_results = pd.DataFrame()
+
 # loop over benchmark batches
 for benchmarkSpecifications in benchmarkSpecificationsBatch:
     output_file = f"{output_directory}/{benchmarkSpecifications.label}.csv"
@@ -285,3 +288,10 @@ for benchmarkSpecifications in benchmarkSpecificationsBatch:
 
     benchmarkingResultsAll.to_csv(output_file)
     print(benchmarkingResultsAll)
+
+    benchmarkingResultsAll["benchmark_label"] = benchmarkSpecifications.label
+    all_results = pd.concat([all_results, benchmarkingResultsAll], ignore_index=True)
+
+# Save the all_results DataFrame as a CSV file in the output directory
+all_results_file = f"{output_directory}/all_results.csv"
+all_results.to_csv(all_results_file)
