@@ -220,7 +220,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
                 bs,
                 master.timerBuildIndex.mean,
                 timerServerStartup.mean,
-                timerSearch.mean,
+                timerSearch.mean / bs.batch_size,
                 recall,
                 recall_at_1,
                 recall_at_10,
@@ -232,7 +232,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
                 memoryLogsBaseline,
                 memoryLogsIngesting,
                 memoryLogsBenchmark,
-                timerSearch.timings,
+                [t / bs.batch_size for t in timerSearch.timings],
                 "",
                 bs.get_aux_parameters(),
             )

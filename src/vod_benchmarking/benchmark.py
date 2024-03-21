@@ -28,15 +28,13 @@ benchmarkSpecificationsBatch = [
         label="batch_size1,n1000,top1",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
         ],
-        indexTypes=[
-            IVF(n_partition=256, n_probe=32),
-        ],
+        indexTypes=[HNSW(M=8, ef_construction=16, ef_search=32)],
         preprocessings=[
             None,
         ],
@@ -51,15 +49,13 @@ benchmarkSpecificationsBatch = [
         label="batch_size1000,n1,top1",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
         ],
-        indexTypes=[
-            IVF(n_partition=256, n_probe=32),
-        ],
+        indexTypes=[HNSW(M=8, ef_construction=16, ef_search=32)],
         preprocessings=[
             None,
         ],
@@ -74,15 +70,13 @@ benchmarkSpecificationsBatch = [
         label="batch_size1,n1000,top1000",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
         ],
-        indexTypes=[
-            IVF(n_partition=256, n_probe=32),
-        ],
+        indexTypes=[HNSW(M=8, ef_construction=16, ef_search=32)],
         preprocessings=[
             None,
         ],
@@ -289,7 +283,6 @@ for benchmarkSpecifications in benchmarkSpecificationsBatch:
     benchmarkingResultsAll.to_csv(output_file)
     print(benchmarkingResultsAll)
 
-    benchmarkingResultsAll["benchmark_label"] = benchmarkSpecifications.label
     all_results = pd.concat([all_results, benchmarkingResultsAll], ignore_index=True)
 
 # Save the all_results DataFrame as a CSV file in the output directory
