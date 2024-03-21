@@ -128,6 +128,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
         benchmarkTimer = Timer()
         timerServerStartup = Timer()
         timerSearch = Timer()
+        timerGroundTruth = Timer()
 
         # prepare
         stop_docker_containers()  # stop all docker processes preemptively
@@ -190,7 +191,9 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
                 indices_pred = results.indices
 
                 # get true results
+                timerGroundTruth.begin()
                 indices_true = get_ground_truth(index_vectors, query_vectors[i], top_k=bs.query_top_k_results)
+                timerGroundTruth.end()
 
                 # save recalls
                 recalls.append(recall_batch(indices_pred, indices_true))
@@ -215,6 +218,10 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
             recall_at_10 = float(np.mean(recalls_at_10))
             recall_at_100 = float(np.mean(recalls_at_100))
             recall_at_1000 = float(np.mean(recalls_at_1000))
+
+            print("Seconds spend on getting ground truth", sum(timerGroundTruth.timings))
+            print("mean spending on ground truth", timerGroundTruth.mean)
+            print("mean spending on test", timerSearch.mean)
 
             return BenchmarkingResults(
                 bs,
