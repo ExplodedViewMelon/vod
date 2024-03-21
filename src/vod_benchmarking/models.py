@@ -139,7 +139,7 @@ class BenchmarkSpecificationsBatch:
         preprocessings: Sequence[None | ProductQuantization | ScalarQuantization],
         distanceMetrics: Sequence[DistanceMetric],
         batch_size: int = 1000,
-        n_test_batches: int = 10,
+        n_test_batches: int = 1,
         query_top_k_results: int = 100,
         timeout_index_build: int = 60 * 20,
         timeout_benchmark: int = 60 * 30,

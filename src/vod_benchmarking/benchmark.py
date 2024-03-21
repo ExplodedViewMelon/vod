@@ -24,69 +24,6 @@ from datetime import datetime
 
 
 benchmarkSpecificationsBatch = [
-    BenchmarkSpecificationsBatch(
-        label="batch_size1,n1000,top1",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-        ],
-        indexTypes=[HNSW(M=8, ef_construction=16, ef_search=32)],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-        batch_size=1,
-        n_test_batches=1000,
-        query_top_k_results=1,
-    ),
-    BenchmarkSpecificationsBatch(
-        label="batch_size1000,n1,top1",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-        ],
-        indexTypes=[HNSW(M=8, ef_construction=16, ef_search=32)],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-        batch_size=1000,
-        n_test_batches=1,
-        query_top_k_results=1,
-    ),
-    BenchmarkSpecificationsBatch(
-        label="batch_size1,n1000,top1000",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-        ],
-        indexTypes=[HNSW(M=8, ef_construction=16, ef_search=32)],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-        batch_size=1,
-        n_test_batches=1000,
-        query_top_k_results=1000,
-    ),
     # BenchmarkSpecificationsBatch(
     #     label="testAllParameters",
     #     indexProviderClasses=[
@@ -111,153 +48,153 @@ benchmarkSpecificationsBatch = [
     #         DistanceMetric.DOT,
     #     ],
     # ),
-    # BenchmarkSpecificationsBatch(
-    #     label="Sweep_IVF_nPartitions",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #         milvus_search.MilvusSearchMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetGIST,
-    #     ],
-    #     indexTypes=[
-    #         IVF(n_partition=2**9, n_probe=1),  # 512
-    #         IVF(n_partition=2**10, n_probe=1),
-    #         IVF(n_partition=2**11, n_probe=1),
-    #         IVF(n_partition=2**12, n_probe=1),
-    #         IVF(n_partition=2**13, n_probe=1),  # 8192
-    #     ],
-    #     preprocessings=[
-    #         None,
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
-    # BenchmarkSpecificationsBatch(
-    #     label="Sweep_IVF_nProbe",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #         milvus_search.MilvusSearchMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetGIST,
-    #     ],
-    #     indexTypes=[
-    #         IVF(n_partition=1024, n_probe=1),
-    #         IVF(n_partition=1024, n_probe=10),
-    #         IVF(n_partition=1024, n_probe=100),
-    #         IVF(n_partition=1024, n_probe=1000),
-    #     ],
-    #     preprocessings=[
-    #         None,
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
-    # BenchmarkSpecificationsBatch(
-    #     label="Sweep_PQ",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #         milvus_search.MilvusSearchMaster,
-    #         qdrant_search.QdrantSearchMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetGIST,
-    #     ],
-    #     indexTypes=[
-    #         IVF(n_partition=1024, n_probe=100),
-    #         HNSW(M=16, ef_construction=32, ef_search=64),
-    #     ],
-    #     preprocessings=[
-    #         None,
-    #         ProductQuantization(m=4),
-    #         ProductQuantization(m=8),
-    #         ProductQuantization(m=16),
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
-    # BenchmarkSpecificationsBatch(
-    #     label="Sweep_SQ",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #         milvus_search.MilvusSearchMaster,
-    #         qdrant_search.QdrantSearchMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetGIST,
-    #     ],
-    #     indexTypes=[
-    #         IVF(n_partition=1024, n_probe=100),
-    #         HNSW(M=16, ef_construction=32, ef_search=64),
-    #     ],
-    #     preprocessings=[
-    #         None,
-    #         ScalarQuantization(n=4),
-    #         ScalarQuantization(n=8),
-    #         ScalarQuantization(n=16),
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
-    # BenchmarkSpecificationsBatch(
-    #     label="Sweep_HNSW_M",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #         milvus_search.MilvusSearchMaster,
-    #         qdrant_search.QdrantSearchMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetGIST,
-    #     ],
-    #     indexTypes=[HNSW(M=2**i, ef_construction=32, ef_search=64) for i in range(3, 9)],
-    #     preprocessings=[
-    #         None,
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
-    # BenchmarkSpecificationsBatch(
-    #     label="Sweep_HNSW_efConstruction",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #         milvus_search.MilvusSearchMaster,
-    #         qdrant_search.QdrantSearchMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetGIST,
-    #     ],
-    #     indexTypes=[HNSW(M=16, ef_construction=2**i, ef_search=64) for i in range(3, 9)],
-    #     preprocessings=[
-    #         None,
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
-    # BenchmarkSpecificationsBatch(
-    #     label="Sweep_HNSW_efSearch",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #         milvus_search.MilvusSearchMaster,
-    #         qdrant_search.QdrantSearchMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetGIST,
-    #     ],
-    #     indexTypes=[HNSW(M=16, ef_construction=32, ef_search=2**i) for i in range(3, 9)],
-    #     preprocessings=[
-    #         None,
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
+    BenchmarkSpecificationsBatch(
+        label="Sweep_IVF_nPartitions",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+            milvus_search.MilvusSearchMaster,
+        ],
+        datasetClasses=[
+            DatasetGIST,
+        ],
+        indexTypes=[
+            IVF(n_partition=2**9, n_probe=1),  # 512
+            IVF(n_partition=2**10, n_probe=1),
+            IVF(n_partition=2**11, n_probe=1),
+            IVF(n_partition=2**12, n_probe=1),
+            IVF(n_partition=2**13, n_probe=1),  # 8192
+        ],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
+        label="Sweep_IVF_nProbe",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+            milvus_search.MilvusSearchMaster,
+        ],
+        datasetClasses=[
+            DatasetGIST,
+        ],
+        indexTypes=[
+            IVF(n_partition=1024, n_probe=1),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=100),
+            IVF(n_partition=1024, n_probe=1000),
+        ],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
+        label="Sweep_PQ",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
+        ],
+        datasetClasses=[
+            DatasetGIST,
+        ],
+        indexTypes=[
+            IVF(n_partition=1024, n_probe=100),
+            HNSW(M=16, ef_construction=32, ef_search=64),
+        ],
+        preprocessings=[
+            None,
+            ProductQuantization(m=4),
+            ProductQuantization(m=8),
+            ProductQuantization(m=16),
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
+        label="Sweep_SQ",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
+        ],
+        datasetClasses=[
+            DatasetGIST,
+        ],
+        indexTypes=[
+            IVF(n_partition=1024, n_probe=100),
+            HNSW(M=16, ef_construction=32, ef_search=64),
+        ],
+        preprocessings=[
+            None,
+            ScalarQuantization(n=4),
+            ScalarQuantization(n=8),
+            ScalarQuantization(n=16),
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
+        label="Sweep_HNSW_M",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
+        ],
+        datasetClasses=[
+            DatasetGIST,
+        ],
+        indexTypes=[HNSW(M=2**i, ef_construction=32, ef_search=64) for i in range(3, 9)],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
+        label="Sweep_HNSW_efConstruction",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
+        ],
+        datasetClasses=[
+            DatasetGIST,
+        ],
+        indexTypes=[HNSW(M=16, ef_construction=2**i, ef_search=64) for i in range(3, 9)],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
+        label="Sweep_HNSW_efSearch",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
+        ],
+        datasetClasses=[
+            DatasetGIST,
+        ],
+        indexTypes=[HNSW(M=16, ef_construction=32, ef_search=2**i) for i in range(3, 9)],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
 ]
 
 # make folder for results
