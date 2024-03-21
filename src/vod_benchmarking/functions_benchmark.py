@@ -49,6 +49,7 @@ class Timer:
 
 
 def get_ground_truth(vectors: np.ndarray, query: np.ndarray, top_k: int) -> np.ndarray:
+    # depricated, since this index should not be build for each query.
     """use sklearn to return flat, brute top_k NN indices"""
     nbrs = NearestNeighbors(n_neighbors=top_k, algorithm="brute").fit(vectors)  # type: ignore
     _, indices = nbrs.kneighbors(query)
@@ -194,7 +195,9 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
                 indices_pred = results.indices
 
                 # get true results
+                timerGroundTruth.begin()
                 _, indices_true = index_ground_truth.kneighbors(query_vectors[i])
+                timerGroundTruth.end()
 
                 # save recalls
                 recalls.append(recall_batch(indices_pred, indices_true))
