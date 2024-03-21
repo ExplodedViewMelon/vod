@@ -24,24 +24,24 @@ from datetime import datetime
 
 
 benchmarkSpecificationsBatch = [
-    # BenchmarkSpecificationsBatch(
-    #     label="simplestTest",
-    #     indexProviderClasses=[
-    #         faiss_search.FaissMaster,
-    #     ],
-    #     datasetClasses=[
-    #         DatasetSift1M,
-    #     ],
-    #     indexTypes=[
-    #         IVF(n_partition=256, n_probe=32),
-    #     ],
-    #     preprocessings=[
-    #         None,
-    #     ],
-    #     distanceMetrics=[
-    #         DistanceMetric.L2,
-    #     ],
-    # ),
+    BenchmarkSpecificationsBatch(
+        label="simplestTest",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+        ],
+        datasetClasses=[
+            DatasetSift1M,
+        ],
+        indexTypes=[
+            IVF(n_partition=256, n_probe=32),
+        ],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
     BenchmarkSpecificationsBatch(
         label="testAllParameters",
         indexProviderClasses=[
