@@ -28,8 +28,8 @@ benchmarkSpecificationsBatch = [
         label="batch_size1,n1000,top1",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
+            # milvus_search.MilvusSearchMaster,
+            # qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
@@ -49,8 +49,8 @@ benchmarkSpecificationsBatch = [
         label="batch_size1000,n1,top1",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
+            # milvus_search.MilvusSearchMaster,
+            # qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
@@ -70,8 +70,8 @@ benchmarkSpecificationsBatch = [
         label="batch_size1,n1000,top1000",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
+            # milvus_search.MilvusSearchMaster,
+            # qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
