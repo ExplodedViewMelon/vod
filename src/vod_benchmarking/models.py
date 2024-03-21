@@ -103,6 +103,16 @@ class BenchmarkSpecificationSingle:
         self.n_warmup_batches = self.n_test_batches // 5  # warmup using one fifth of training data size
         self.n_query_vectors = self.n_warmup_batches + self.n_test_batches  # total number of non-train vectors
 
+    def get_aux_parameters(self) -> str:
+        data = {
+            "batch_size": self.batch_size,
+            "n_test_batches": self.n_test_batches,
+            "query_top_k_results": self.query_top_k_results,
+            "timeout_index_build": self.timeout_index_build,
+            "timeout_benchmark": self.timeout_benchmark,
+        }
+        return str(data)
+
     def get_summary(self) -> str:
         return (
             f"Summary for {self.label}:\n"
@@ -226,6 +236,7 @@ class BenchmarkingResults:
         allMemoryLogsBaseline: np.ndarray,
         allTimingsSearch: List[float],
         error: str,
+        aux: str,
     ):
         self.benchSpecification = benchmarkSpecification
         self.timingBuildIndex = timingBuildIndex
@@ -244,6 +255,7 @@ class BenchmarkingResults:
         self.allMemoryLogsBaseline = allMemoryLogsBaseline
         self.allTimingsSearch = allTimingsSearch
         self.error = error
+        self.aux = aux
 
     def to_pandas(self) -> pd.DataFrame:
         data = {
@@ -277,5 +289,6 @@ class BenchmarkingResults:
             "allMemoryLogsBaseline": [self.allMemoryLogsBaseline.tolist()],
             "allTimingsSearch": [self.allTimingsSearch],
             "fullError": [self.error],
+            "aux": [self.aux],
         }
         return pd.DataFrame(data)
