@@ -119,11 +119,12 @@ benchmarkSpecificationsBatch = [
         label="Sweep_SQ",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
+            DatasetGIST,
         ],
         indexTypes=[
             IVF(n_partition=512, n_probe=100),
@@ -137,7 +138,6 @@ benchmarkSpecificationsBatch = [
             None,
             ScalarQuantization(n=4),
             ScalarQuantization(n=8),
-            ScalarQuantization(n=16),
         ],
         distanceMetrics=[
             DistanceMetric.L2,
@@ -147,11 +147,12 @@ benchmarkSpecificationsBatch = [
         label="Sweep_HNSW_M",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
+            DatasetGIST,
         ],
         indexTypes=[HNSW(M=2**i, ef_construction=32, ef_search=64) for i in range(3, 9)],
         preprocessings=[
@@ -165,11 +166,12 @@ benchmarkSpecificationsBatch = [
         label="Sweep_HNSW_efConstruction",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
+            DatasetGIST,
         ],
         indexTypes=[HNSW(M=16, ef_construction=2**i, ef_search=64) for i in range(3, 9)],
         preprocessings=[
@@ -183,11 +185,12 @@ benchmarkSpecificationsBatch = [
         label="Sweep_HNSW_efSearch",
         indexProviderClasses=[
             faiss_search.FaissMaster,
-            # milvus_search.MilvusSearchMaster,
-            # qdrant_search.QdrantSearchMaster,
+            milvus_search.MilvusSearchMaster,
+            qdrant_search.QdrantSearchMaster,
         ],
         datasetClasses=[
             DatasetSift1M,
+            DatasetGIST,
         ],
         indexTypes=[HNSW(M=16, ef_construction=32, ef_search=2**i) for i in range(3, 9)],
         preprocessings=[
