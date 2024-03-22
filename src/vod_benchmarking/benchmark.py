@@ -116,6 +116,24 @@ benchmarkSpecificationsBatch = [
     #     ],
     # ),
     BenchmarkSpecificationsBatch(
+        label="SingletonSanityTest",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+        ],
+        datasetClasses=[
+            DatasetSift1M,
+        ],
+        indexTypes=[
+            IVF(n_partition=512, n_probe=100),
+        ],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+    ),
+    BenchmarkSpecificationsBatch(
         label="Sweep_SQ",
         indexProviderClasses=[
             faiss_search.FaissMaster,

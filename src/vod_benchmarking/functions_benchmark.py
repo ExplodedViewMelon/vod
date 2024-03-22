@@ -195,9 +195,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
                 indices_pred = results.indices
 
                 # get true results
-                timerGroundTruth.begin()
                 _, indices_true = index_ground_truth.kneighbors(query_vectors[i])
-                timerGroundTruth.end()
 
                 # save recalls
                 recalls.append(recall_batch(indices_pred, indices_true))
@@ -222,10 +220,6 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
             recall_at_10 = float(np.mean(recalls_at_10))
             recall_at_100 = float(np.mean(recalls_at_100))
             recall_at_1000 = float(np.mean(recalls_at_1000))
-
-            print("Seconds spend on getting ground truth", sum(timerGroundTruth.timings))
-            print("mean spending on ground truth", timerGroundTruth.mean)
-            print("mean spending on test", timerSearch.mean)
 
             return BenchmarkingResults(
                 bs,

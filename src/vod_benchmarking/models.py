@@ -66,11 +66,8 @@ class IndexParameters(abc.ABC):
         self.index_type = index_type
         self.metric = metric
 
-        # if isinstance(self.preprocessing, ProductQuantization): # NOTE this is caught in the try-except clause.
-        #     assert isinstance(self.index_type, IVF), "HSNW does not support ProductQuantization"
-
     def __repr__(self) -> str:
-        return f"{self.index_type}, {self.preprocessing}, {self.metric}"
+        return f"{self.index_type}"
 
 
 class DistanceMetric(Enum):
