@@ -33,14 +33,12 @@ benchmarkSpecificationsBatch = [
             DatasetSift1M,
         ],
         indexTypes=[
-            IVF(n_partition=2**9, n_probe=1),  # 512
-            IVF(n_partition=2**10, n_probe=1),
-            IVF(n_partition=2**11, n_probe=1),
-            IVF(n_partition=2**12, n_probe=1),
-            IVF(n_partition=2**13, n_probe=1),  # 8192
+            IVF(n_partition=1, n_probe=1),
+            IVF(n_partition=5, n_probe=1),
+            IVF(n_partition=10, n_probe=1),
         ],
         preprocessings=[
-            None,
+            # None,
             ProductQuantization(m=8),
             # ProductQuantization(m=16),
         ],
