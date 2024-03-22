@@ -48,51 +48,51 @@ benchmarkSpecificationsBatch = [
     #         DistanceMetric.DOT,
     #     ],
     # ),
-    BenchmarkSpecificationsBatch(
-        label="Sweep_IVF_nPartitions",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetGIST,
-        ],
-        indexTypes=[
-            IVF(n_partition=2**9, n_probe=1),  # 512
-            IVF(n_partition=2**10, n_probe=1),
-            IVF(n_partition=2**11, n_probe=1),
-            IVF(n_partition=2**12, n_probe=1),
-            IVF(n_partition=2**13, n_probe=1),  # 8192
-        ],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
-    BenchmarkSpecificationsBatch(
-        label="Sweep_IVF_nProbe",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetGIST,
-        ],
-        indexTypes=[
-            IVF(n_partition=1024, n_probe=1),
-            IVF(n_partition=1024, n_probe=10),
-            IVF(n_partition=1024, n_probe=100),
-            IVF(n_partition=1024, n_probe=1000),
-        ],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
+    # BenchmarkSpecificationsBatch(
+    #     label="Sweep_IVF_nPartitions",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetGIST,
+    #     ],
+    #     indexTypes=[
+    #         IVF(n_partition=2**9, n_probe=1),  # 512
+    #         IVF(n_partition=2**10, n_probe=1),
+    #         IVF(n_partition=2**11, n_probe=1),
+    #         IVF(n_partition=2**12, n_probe=1),
+    #         IVF(n_partition=2**13, n_probe=1),  # 8192
+    #     ],
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    # ),
+    # BenchmarkSpecificationsBatch(
+    #     label="Sweep_IVF_nProbe",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetGIST,
+    #     ],
+    #     indexTypes=[
+    #         IVF(n_partition=1024, n_probe=1),
+    #         IVF(n_partition=1024, n_probe=10),
+    #         IVF(n_partition=1024, n_probe=100),
+    #         IVF(n_partition=1024, n_probe=1000),
+    #     ],
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    # ),
     BenchmarkSpecificationsBatch(
         label="Sweep_PQ",
         indexProviderClasses=[
@@ -111,7 +111,7 @@ benchmarkSpecificationsBatch = [
             None,
             ProductQuantization(m=4),
             ProductQuantization(m=8),
-            ProductQuantization(m=16),
+            # ProductQuantization(m=16), # causes benchmark to be killed
         ],
         distanceMetrics=[
             DistanceMetric.L2,
