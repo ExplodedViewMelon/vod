@@ -81,42 +81,42 @@ import seaborn as sns
 # plt.xlabel("Search speed (ms)")
 # plt.show()
 
-# HNSW SQ SWEEP
-df_plot = df_results[df_results.Compression.str[:2] == "SQ"].query("IndexType == 'HNSW'")
-sns.scatterplot(
-    data=df_plot,
-    x="SearchSpeedAverage",
-    y="RecallAt1000Mean",
-    style="Compression",
-    hue="TimerBuildIndexMean",
-    palette="flare",
-    s=70,
-)
-for line in range(df_plot.shape[0]):
-    point = df_plot.iloc[line]
-    plt.text(point["SearchSpeedAverage"], point["RecallAt1000Mean"], f"   {point['M']}", fontsize=9)
-plt.title("Faiss HNSW SQ SWEEP")
-plt.ylabel("Recall")
-plt.xlabel("Search speed (ms)")
-plt.show()
+# # HNSW SQ SWEEP
+# df_plot = df_results[df_results.Compression.str[:2] == "SQ"].query("IndexType == 'HNSW'")
+# sns.scatterplot(
+#     data=df_plot,
+#     x="SearchSpeedAverage",
+#     y="RecallAt1000Mean",
+#     style="Compression",
+#     hue="TimerBuildIndexMean",
+#     palette="flare",
+#     s=70,
+# )
+# for line in range(df_plot.shape[0]):
+#     point = df_plot.iloc[line]
+#     plt.text(point["SearchSpeedAverage"], point["RecallAt1000Mean"], f"   {point['M']}", fontsize=9)
+# plt.title("Faiss HNSW SQ SWEEP")
+# plt.ylabel("Recall")
+# plt.xlabel("Search speed (ms)")
+# plt.show()
 
 
-df_results = get_and_prepare_file(index=-2)
-# HNSW SQ SWEEP FOR SIFT
-df_plot = df_results[df_results.Compression.str[:2] == "SQ"].query("IndexType == 'HNSW'")
-sns.scatterplot(
-    data=df_plot,
-    x="SearchSpeedAverage",
-    y="RecallAt1000Mean",
-    style="Compression",
-    hue="TimerBuildIndexMean",
-    palette="flare",
-    s=70,
-)
-for line in range(df_plot.shape[0]):
-    point = df_plot.iloc[line]
-    plt.text(point["SearchSpeedAverage"], point["RecallAt1000Mean"], f"   {point['M']}", fontsize=9)
-plt.title("Faiss HNSW SQ SWEEP")
-plt.ylabel("Recall")
-plt.xlabel("Search speed (ms)")
-plt.show()
+# df_results = get_and_prepare_file(index=-2)
+# # HNSW SQ SWEEP FOR SIFT
+# df_plot = df_results[df_results.Compression.str[:2] == "SQ"].query("IndexType == 'HNSW'")
+# sns.scatterplot(
+#     data=df_plot,
+#     x="SearchSpeedAverage",
+#     y="RecallAt1000Mean",
+#     style="Compression",
+#     hue="TimerBuildIndexMean",
+#     palette="flare",
+#     s=70,
+# )
+# for line in range(df_plot.shape[0]):
+#     point = df_plot.iloc[line]
+#     plt.text(point["SearchSpeedAverage"], point["RecallAt1000Mean"], f"   {point['M']}", fontsize=9)
+# plt.title("Faiss HNSW SQ SWEEP")
+# plt.ylabel("Recall")
+# plt.xlabel("Search speed (ms)")
+# plt.show()

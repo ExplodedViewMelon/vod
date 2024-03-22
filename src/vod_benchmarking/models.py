@@ -11,6 +11,7 @@ class ProductQuantization:
     m: int
 
     def __init__(self, *, m) -> None:
+        """m must be 8 or 16"""
         self.m = m
 
     def __repr__(self) -> str:

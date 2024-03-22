@@ -308,7 +308,7 @@ class FaissMaster(base.SearchMaster[FaissClient], abc.ABC):
         index = faiss_search.build_faiss_index(  # valentin's code
             vectors=self.vectors,
             factory_string=factory_string,
-            train_size=self.vectors.shape[0] // self.num_batches,  # 100 batches
+            train_size=self.vectors.shape[0] // self.num_batches,
             ef_construction=(
                 self.index_parameters.index_type.ef_construction
                 if isinstance(self.index_parameters.index_type, HNSW)
