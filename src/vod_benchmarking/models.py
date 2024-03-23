@@ -296,9 +296,9 @@ class BenchmarkingResults:
         recall_at_10: float,
         recall_at_100: float,
         recall_at_1000: float,
-        memoryBenchmark: float,
-        memoryIngesting: float,
         memoryBaseline: float,
+        memoryIngesting: float,
+        memoryBenchmark: float,
         allMemoryLogsBenchmark: np.ndarray,
         allMemoryLogsIngesting: np.ndarray,
         allMemoryLogsBaseline: np.ndarray,
@@ -315,9 +315,9 @@ class BenchmarkingResults:
         self.recall_at_10 = recall_at_10
         self.recall_at_100 = recall_at_100
         self.recall_at_1000 = recall_at_1000
-        self.memoryBenchmark = memoryBenchmark
-        self.memoryIngesting = memoryIngesting
         self.memoryBaseline = memoryBaseline
+        self.memoryIngesting = memoryIngesting
+        self.memoryBenchmark = memoryBenchmark
         self.allMemoryLogsBenchmark = allMemoryLogsBenchmark
         self.allMemoryLogsIngesting = allMemoryLogsIngesting
         self.allMemoryLogsBaseline = allMemoryLogsBaseline
@@ -360,4 +360,6 @@ class BenchmarkingResults:
             "fullError": [self.error],
             "aux": [self.aux],
         }
+        df_results = pd.DataFrame(data)
+        df_results = df_results.fillna("None")
         return pd.DataFrame(data)
