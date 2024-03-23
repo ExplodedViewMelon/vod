@@ -1,4 +1,5 @@
 import warnings
+from typing import Dict
 
 # Ignore deprecation warnings
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -133,92 +134,110 @@ benchmarkSpecificationsBatch = [
             DistanceMetric.L2,
         ],
     ),
-    BenchmarkSpecificationsBatch(
-        label="Sweep_SQ",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-            DatasetGIST,
-        ],
-        indexTypes=[
-            IVF(n_partition=512, n_probe=100),
-            IVF(n_partition=1024, n_probe=100),
-            IVF(n_partition=2048, n_probe=100),
-            HNSW(M=8, ef_construction=32, ef_search=64),
-            HNSW(M=16, ef_construction=32, ef_search=64),
-            HNSW(M=32, ef_construction=32, ef_search=64),
-        ],
-        preprocessings=[
-            None,
-            ScalarQuantization(n=4),
-            ScalarQuantization(n=8),
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
-    BenchmarkSpecificationsBatch(
-        label="Sweep_HNSW_M",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-            DatasetGIST,
-        ],
-        indexTypes=[HNSW(M=2**i, ef_construction=32, ef_search=64) for i in range(3, 9)],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
-    BenchmarkSpecificationsBatch(
-        label="Sweep_HNSW_efConstruction",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-            DatasetGIST,
-        ],
-        indexTypes=[HNSW(M=16, ef_construction=2**i, ef_search=64) for i in range(3, 9)],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
-    BenchmarkSpecificationsBatch(
-        label="Sweep_HNSW_efSearch",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-            DatasetGIST,
-        ],
-        indexTypes=[HNSW(M=16, ef_construction=32, ef_search=2**i) for i in range(3, 9)],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
+    # Compatibility warnings for benchmark Sweep_SQ
+    #    - Milvus does not support top_k > ef_search
+    #    - Milvus only supports SQ with n=8
+    #    - Milvus does not support preprocessing for HNSW
+    #    - Qdrant only supports the HNSW index
+    # Compatibility warnings for benchmark Sweep_HNSW_M
+    #    - Milvus does not support top_k > ef_search
+    # Compatibility warnings for benchmark Sweep_HNSW_efConstruction
+    #    - Milvus does not support top_k > ef_search
+    # Compatibility warnings for benchmark Sweep_HNSW_efSearch
+    #    - Milvus does not support top_k > ef_search
+    # BenchmarkSpecificationsBatch(
+    #     label="Sweep_SQ",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #     ],
+    #     indexTypes=[
+    #         IVF(n_partition=512, n_probe=100),
+    #         IVF(n_partition=1024, n_probe=100),
+    #         IVF(n_partition=2048, n_probe=100),
+    #         HNSW(M=8, ef_construction=32, ef_search=64),
+    #         HNSW(M=16, ef_construction=32, ef_search=64),
+    #         HNSW(M=32, ef_construction=32, ef_search=64),
+    #     ],
+    #     preprocessings=[
+    #         None,
+    #         ScalarQuantization(n=4),
+    #         ScalarQuantization(n=8),
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    #     query_top_k_results=50,
+    # ),
+    # BenchmarkSpecificationsBatch(
+    #     label="Sweep_HNSW_M",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #     ],
+    #     indexTypes=[HNSW(M=2**i, ef_construction=32, ef_search=64) for i in range(3, 9)],
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    # ),
+    # BenchmarkSpecificationsBatch(
+    #     label="Sweep_HNSW_efConstruction",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #     ],
+    #     indexTypes=[HNSW(M=16, ef_construction=2**i, ef_search=64) for i in range(3, 9)],
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    # ),
+    # BenchmarkSpecificationsBatch(
+    #     label="Sweep_HNSW_efSearch",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #     ],
+    #     indexTypes=[HNSW(M=16, ef_construction=32, ef_search=2**i) for i in range(3, 9)],
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    # ),
 ]
+
+# display compatability issues
+for benchmarkSpecifications in benchmarkSpecificationsBatch:
+    compatabilityWarnings = benchmarkSpecifications.check_compatability()
+    if compatabilityWarnings:
+        print("Compatibility warnings for benchmark", benchmarkSpecifications.label)
+        for elem in compatabilityWarnings:
+            print("   -", elem)
+        print()
+
 
 # make folder for results
 current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

@@ -233,7 +233,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
                     },
                 }
             elif isinstance(preprocessing, ScalarQuantization):
-                assert preprocessing.n == 8, "SQ8 is the only supported"
                 return {
                     "index_type": "IVF_SQ8",
                     "metric_type": self.index_parameters.metric,
@@ -251,7 +250,6 @@ class MilvusSearchMaster(base.SearchMaster[MilvusSearchClient], abc.ABC):
                 }
 
         if isinstance(index_type, HNSW):
-            assert preprocessing == None, "Milvus does not support quantizers for hnsw."
             return {
                 "index_type": "HNSW",
                 "metric_type": self.index_parameters.metric,

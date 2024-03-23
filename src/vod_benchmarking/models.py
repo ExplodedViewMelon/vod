@@ -76,6 +76,7 @@ class DistanceMetric(Enum):
 
 
 class BenchmarkSpecificationSingle:
+
     def __init__(
         self,
         label: str,
@@ -125,6 +126,37 @@ class BenchmarkSpecificationSingle:
             f"n_warmup_batches={self.n_warmup_batches},\n"
             f"n_query_vectors={self.n_query_vectors}"
         )
+
+    def check_compatability(self) -> set[str]:
+        from vod_search.milvus_search import MilvusSearchMaster
+        from vod_search.faiss_search import FaissMaster
+        from vod_search.qdrant_search import QdrantSearchMaster
+
+        warnings: set[str] = set()
+        if self.indexProviderClass == MilvusSearchMaster:  # type: ignore
+            if isinstance(self.indexParameters.preprocessing, ScalarQuantization):
+                if self.indexParameters.preprocessing.n != 8:
+                    warnings.add("Milvus only supports SQ with n=8")
+            if isinstance(self.indexParameters.index_type, HNSW):
+                if self.query_top_k_results > self.indexParameters.index_type.ef_search:
+                    warnings.add("Milvus does not support top_k > ef_search")
+                if self.indexParameters.preprocessing:
+                    warnings.add("Milvus does not support preprocessing for HNSW")
+
+        elif self.indexProviderClass == QdrantSearchMaster:  # type:ignore
+            if not isinstance(self.indexParameters.index_type, HNSW):
+                warnings.add("Qdrant only supports the HNSW index")
+
+        elif self.indexProviderClass == FaissMaster:  # type:ignore
+            if isinstance(self.indexParameters.preprocessing, ProductQuantization):
+                if self.indexParameters.preprocessing.m < 8:
+                    warnings.add("Faiss does not support product quantization with m<8")
+
+        if isinstance(self.indexParameters.preprocessing, ProductQuantization):
+            if self.datasetClass.dimensions % self.indexParameters.preprocessing.m != 0:
+                warnings.add("Number of subquantizers in PQ should divide evenly with data dimensions")
+
+        return warnings
 
 
 class BenchmarkSpecificationsBatch:
@@ -213,6 +245,42 @@ class BenchmarkSpecificationsBatch:
                                 timeout_benchmark=self.timeout_benchmark,
                             )
 
+    def get_all_combinations(self) -> List[BenchmarkSpecificationSingle]:
+        combinations = []
+        for datasetClass in self.datasetClasses:
+            for indexProviderClass in self.indexProviderClasses:
+                for indexType in self.indexTypes:
+                    for preprocessing in self.preprocessings:
+                        for distance_metric in self.distanceMetrics:
+                            # make index parameter object to be passed to searchmaster
+                            indexParameters = IndexParameters(
+                                index_type=indexType,
+                                metric=distance_metric.value,  # unpack enum
+                                preprocessing=preprocessing,
+                                top_k=self.query_top_k_results,
+                            )
+                            bs = BenchmarkSpecificationSingle(
+                                indexProviderClass=indexProviderClass,
+                                datasetClass=datasetClass,
+                                indexParameters=indexParameters,
+                                # constants
+                                label=self.label,
+                                batch_size=self.batch_size,
+                                n_test_batches=self.n_test_batches,
+                                query_top_k_results=self.query_top_k_results,
+                                timeout_index_build=self.timeout_index_build,
+                                timeout_benchmark=self.timeout_benchmark,
+                            )
+                            combinations.append(bs)
+
+        return combinations
+
+    def check_compatability(self) -> set[str]:
+        compatabilityWarnings: set[str] = set()
+        for bs in self.get_all_combinations():
+            compatabilityWarnings.update(bs.check_compatability())
+        return compatabilityWarnings
+
 
 class BenchmarkingResults:
     def __init__(
@@ -261,6 +329,7 @@ class BenchmarkingResults:
             "error": [self.error[-20:]],
             "indexProvider": [self.benchSpecification.indexProviderClass.get_name()],
             "indexType": [self.benchSpecification.indexParameters.index_type],
+            "dataset": [self.benchSpecification.datasetClass],
             # disable black formatter for the following lines
             # fmt: off
             "M": [self.benchSpecification.indexParameters.index_type.M if hasattr(self.benchSpecification.indexParameters.index_type, 'M') else None], #type:ignore

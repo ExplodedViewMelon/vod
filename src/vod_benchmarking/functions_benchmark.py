@@ -249,5 +249,22 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
             dockerMemoryLogger.stop_logging()
         # return -1 for all values except bs and error
         return BenchmarkingResults(
-            bs, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, np.array([-1]), np.array([-1]), np.array([-1]), [-1], tb, ""
+            bs,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            np.array([-1]),
+            np.array([-1]),
+            np.array([-1]),
+            [-1],
+            tb,
+            "",
         )

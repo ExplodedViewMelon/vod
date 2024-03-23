@@ -65,6 +65,12 @@ class DatasetHDF5Simple(abc.ABC):
     def name(self) -> str:
         NotImplementedError()
 
+    @property
+    @classmethod
+    @abc.abstractmethod
+    def dimensions(cls) -> int:
+        NotImplementedError()
+
     def __repr__(self) -> str:
         return self.name
 
@@ -76,6 +82,11 @@ class DatasetGlove(DatasetHDF5Simple):
     def name(self):
         return "glove-25-angular"
 
+    @property
+    @classmethod
+    def dimensions(cls) -> int:
+        return 25
+
 
 class DatasetLastFM(DatasetHDF5Simple):
     """Dataset of size (~350_000, 65) at ~135MB"""
@@ -84,6 +95,11 @@ class DatasetLastFM(DatasetHDF5Simple):
     def name(self):
         return "lastfm-64-dot"
 
+    @property
+    @classmethod
+    def dimensions(cls) -> int:
+        return 65
+
 
 class DatasetSift1M(DatasetHDF5Simple):
     """Dataset of size (~1_000_000, 128) at ~501MB"""
@@ -91,6 +107,11 @@ class DatasetSift1M(DatasetHDF5Simple):
     @property
     def name(self):
         return "sift-128-euclidean"
+
+    @property
+    @classmethod
+    def dimensions(cls) -> int:
+        return 128
 
 
 # if __name__ == "__main__":
@@ -105,6 +126,11 @@ class DatasetGIST(DatasetHDF5Simple):
     @property
     def name(self):
         return "gist-960-euclidean"
+
+    @property
+    @classmethod
+    def dimensions(cls) -> int:
+        return 960
 
 
 # if __name__ == "__main__":
