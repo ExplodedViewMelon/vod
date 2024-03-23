@@ -144,6 +144,9 @@ class BenchmarkSpecificationSingle:
                     warnings.add("Milvus does not support top_k > ef_search")
                 if self.indexParameters.preprocessing:
                     warnings.add("Milvus does not support preprocessing for HNSW")
+                # essage=M out of range: [4, 64])>
+                if self.indexParameters.index_type.M < 4 or self.indexParameters.index_type.M > 64:
+                    warnings.add("Milvus only supports M in the range 4 to 64")
 
         elif self.indexProviderClass == QdrantSearchMaster:  # type:ignore
             if not isinstance(self.indexParameters.index_type, HNSW):
