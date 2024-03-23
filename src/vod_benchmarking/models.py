@@ -40,7 +40,8 @@ class HNSW:
         self.ef_search = ef_search
 
     def __repr__(self) -> str:
-        return f"{self.name}, M={self.M}, ef_construction={self.ef_construction}, ef_search={self.ef_search}"
+        # return f"{self.name}, M={self.M}, ef_construction={self.ef_construction}, ef_search={self.ef_search}"
+        return "HNSW"
 
 
 class IVF:
@@ -53,7 +54,8 @@ class IVF:
         self.n_probe = n_probe
 
     def __repr__(self) -> str:
-        return f"{self.name}, n_partition={self.n_partition}, n_probe={self.n_probe}"
+        # return f"{self.name}, n_partition={self.n_partition}, n_probe={self.n_probe}"
+        return "IVF"
 
 
 class IndexParameters(abc.ABC):
