@@ -153,6 +153,11 @@ benchmarkSpecificationsBatch = [
             IVF(n_partition=1024, n_probe=10),
             IVF(n_partition=1024, n_probe=10),
             IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
         ],
         preprocessings=[
             None,
@@ -181,6 +186,11 @@ benchmarkSpecificationsBatch = [
             IVF(n_partition=1024, n_probe=10),
             IVF(n_partition=1024, n_probe=10),
             IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
         ],
         preprocessings=[
             None,
@@ -189,6 +199,39 @@ benchmarkSpecificationsBatch = [
             DistanceMetric.L2,
         ],
         n_test_batches=100,
+    ),
+    BenchmarkSpecificationsBatch(
+        label="SpreadTest_n_test=1000",
+        indexProviderClasses=[
+            faiss_search.FaissMaster,
+        ],
+        datasetClasses=[
+            DatasetSift1M,
+        ],
+        indexTypes=[
+            # HNSW(M=16, ef_construction=32, ef_search=64),
+            # HNSW(M=16, ef_construction=32, ef_search=64),
+            # HNSW(M=16, ef_construction=32, ef_search=64),
+            # HNSW(M=16, ef_construction=32, ef_search=64),
+            # HNSW(M=16, ef_construction=32, ef_search=64),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+        ],
+        preprocessings=[
+            None,
+        ],
+        distanceMetrics=[
+            DistanceMetric.L2,
+        ],
+        n_test_batches=1000,
     ),
     # BenchmarkSpecificationsBatch(
     #     label="Sweep_SQ_IVF",
