@@ -362,4 +362,4 @@ class BenchmarkingResults:
         }
         df_results = pd.DataFrame(data)
         df_results = df_results.fillna("None")
-        return pd.DataFrame(data)
+        return df_results
