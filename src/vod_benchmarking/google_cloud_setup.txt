@@ -3,15 +3,19 @@ cd vod
 git checkout Vector-database-benchmark
 git pull
 
-# install homebrew - remember to add to path
+# install homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# ^remember to follow instructions on how to add to path
 
 # install python 3.11
 brew install python@3.11
 
-# Get poetry - remember to add to path
+# Get poetry
 curl -sSL https://install.python-poetry.org | python3 -
 poetry install
+
+# ^remember to follow instructions on how to add to path
 
 poetry add scikit-learn
 poetry add pymilvus
