@@ -331,7 +331,7 @@ class BenchmarkingResults:
             "error": [self.error[-20:]],
             "indexProvider": [self.benchSpecification.indexProviderClass.get_name()],
             "indexType": [self.benchSpecification.indexParameters.index_type],
-            "dataset": [self.benchSpecification.datasetClass],
+            "dataset": [self.benchSpecification.datasetClass.name_class()],
             # disable black formatter for the following lines
             # fmt: off
             "M": [self.benchSpecification.indexParameters.index_type.M if hasattr(self.benchSpecification.indexParameters.index_type, 'M') else None], #type:ignore

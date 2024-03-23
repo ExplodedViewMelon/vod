@@ -71,6 +71,11 @@ class DatasetHDF5Simple(abc.ABC):
     def dimensions(cls) -> int:
         NotImplementedError()
 
+    @classmethod
+    @abc.abstractmethod
+    def name_class(cls) -> str:
+        NotImplementedError()
+
     def __repr__(self) -> str:
         return self.name
 
@@ -80,6 +85,10 @@ class DatasetGlove(DatasetHDF5Simple):
 
     @property
     def name(self):
+        return "glove-25-angular"
+
+    @classmethod
+    def name_class(cls) -> str:
         return "glove-25-angular"
 
     @property
@@ -95,6 +104,10 @@ class DatasetLastFM(DatasetHDF5Simple):
     def name(self):
         return "lastfm-64-dot"
 
+    @classmethod
+    def name_class(cls) -> str:
+        return "lastfm-64-dot"
+
     @property
     @classmethod
     def dimensions(cls) -> int:
@@ -106,6 +119,10 @@ class DatasetSift1M(DatasetHDF5Simple):
 
     @property
     def name(self):
+        return "sift-128-euclidean"
+
+    @classmethod
+    def name_class(cls) -> str:
         return "sift-128-euclidean"
 
     @property
@@ -125,6 +142,10 @@ class DatasetGIST(DatasetHDF5Simple):
 
     @property
     def name(self):
+        return "gist-960-euclidean"
+
+    @classmethod
+    def name_class(cls) -> str:
         return "gist-960-euclidean"
 
     @property
