@@ -68,79 +68,79 @@ benchmarkSpecificationsBatch = [
     #         DistanceMetric.DOT,
     #     ],
     # ),
-    # META TESTS
-    BenchmarkSpecificationsBatch(
-        label="SpreadTest_n_batches_1",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-        ],
-        indexTypes=[
-            IVF(n_partition=1024, n_probe=10),
-            HNSW(M=8, ef_construction=16, ef_search=32),
-        ]
-        * 5,
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-        n_test_batches=1,
-    ),
-    BenchmarkSpecificationsBatch(
-        label="SpreadTest_HNSW_n_batches_10",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-        ],
-        indexTypes=[
-            IVF(n_partition=1024, n_probe=10),
-            HNSW(M=8, ef_construction=16, ef_search=32),
-        ]
-        * 5,
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-        n_test_batches=10,
-    ),
-    BenchmarkSpecificationsBatch(
-        label="DatasetTest",
-        indexProviderClasses=[
-            faiss_search.FaissMaster,
-            milvus_search.MilvusSearchMaster,
-            qdrant_search.QdrantSearchMaster,
-        ],
-        datasetClasses=[
-            DatasetSift1M,
-            DatasetGIST,
-        ],
-        indexTypes=[
-            IVF(n_partition=512, n_probe=10),
-            IVF(n_partition=1024, n_probe=10),
-            IVF(n_partition=2048, n_probe=10),
-            HNSW(M=8, ef_construction=16, ef_search=32),
-            HNSW(M=16, ef_construction=16, ef_search=32),
-            HNSW(M=32, ef_construction=16, ef_search=32),
-        ],
-        preprocessings=[
-            None,
-        ],
-        distanceMetrics=[
-            DistanceMetric.L2,
-        ],
-    ),
+    # # META TESTS
+    # BenchmarkSpecificationsBatch(
+    #     label="SpreadTest_n_batches_1",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #     ],
+    #     indexTypes=[
+    #         IVF(n_partition=1024, n_probe=10),
+    #         HNSW(M=8, ef_construction=16, ef_search=32),
+    #     ]
+    #     * 5,
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    #     n_test_batches=1,
+    # ),
+    # BenchmarkSpecificationsBatch(
+    #     label="SpreadTest_HNSW_n_batches_10",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #     ],
+    #     indexTypes=[
+    #         IVF(n_partition=1024, n_probe=10),
+    #         HNSW(M=8, ef_construction=16, ef_search=32),
+    #     ]
+    #     * 5,
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    #     n_test_batches=10,
+    # ),
+    # BenchmarkSpecificationsBatch(
+    #     label="DatasetTest",
+    #     indexProviderClasses=[
+    #         faiss_search.FaissMaster,
+    #         milvus_search.MilvusSearchMaster,
+    #         qdrant_search.QdrantSearchMaster,
+    #     ],
+    #     datasetClasses=[
+    #         DatasetSift1M,
+    #         DatasetGIST,
+    #     ],
+    #     indexTypes=[
+    #         IVF(n_partition=512, n_probe=10),
+    #         IVF(n_partition=1024, n_probe=10),
+    #         IVF(n_partition=2048, n_probe=10),
+    #         HNSW(M=8, ef_construction=16, ef_search=32),
+    #         HNSW(M=16, ef_construction=16, ef_search=32),
+    #         HNSW(M=32, ef_construction=16, ef_search=32),
+    #     ],
+    #     preprocessings=[
+    #         None,
+    #     ],
+    #     distanceMetrics=[
+    #         DistanceMetric.L2,
+    #     ],
+    # ),
     BenchmarkSpecificationsBatch(
         label="BatchSpeedUpTest_1x1000_batch",
         indexProviderClasses=[
@@ -336,7 +336,6 @@ benchmarkSpecificationsBatch = [
         ],
         datasetClasses=[
             DatasetSift1M,
-            DatasetGIST,
         ],
         indexTypes=[
             IVF(n_partition=1024, n_probe=10),
