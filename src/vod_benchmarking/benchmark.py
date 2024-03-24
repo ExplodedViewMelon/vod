@@ -118,18 +118,18 @@ benchmarkSpecificationsBatch = [
     BenchmarkSpecificationsBatch(
         label="DatasetTest",
         indexProviderClasses=[
-            faiss_search.FaissMaster,
             milvus_search.MilvusSearchMaster,
             qdrant_search.QdrantSearchMaster,
+            faiss_search.FaissMaster,
         ],
         datasetClasses=[
-            DatasetGlove,
-            DatasetSift1M,
             DatasetGIST,
+            DatasetSift1M,
+            DatasetGlove,
         ],
         indexTypes=[
-            IVF(n_partition=512, n_probe=10),
             HNSW(M=8, ef_construction=8, ef_search=16),
+            IVF(n_partition=512, n_probe=10),
         ],
         preprocessings=[
             None,
