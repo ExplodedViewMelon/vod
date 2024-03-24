@@ -100,9 +100,7 @@ def stop_docker_containers():
     print("Stopping all docker processes...")
 
     subprocess.run(["docker", "compose", "down", "-v"])
-    sleep(5)
     subprocess.run(["docker", "network", "prune", "--force"])
-    sleep(1)
     subprocess.run(
         [
             "docker",
@@ -110,8 +108,8 @@ def stop_docker_containers():
             *subprocess.run(["docker", "ps", "-aq"], capture_output=True, text=True).stdout.split(),
         ]
     )
-    sleep(1)
     subprocess.run(["sudo", "rm", "-rf", "volumes"])
+    sleep(1)
 
 
 def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
