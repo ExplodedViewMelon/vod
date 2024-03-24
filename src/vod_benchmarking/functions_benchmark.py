@@ -65,15 +65,22 @@ def recall_batch(index1: np.ndarray, index2: np.ndarray) -> float:
 
 
 def recall_at_k(indices_pred: np.ndarray, indices_true: np.ndarray, k: int) -> float:
-    def recall_at_k1d(indices_pred: np.ndarray, indices_true: np.ndarray, k: int) -> float:
+    def recall_at_k1d(
+        indices_pred: np.ndarray, indices_true: np.ndarray, k: int
+    ) -> float:
         return float(np.isin(indices_true[0], indices_pred[:k]))
 
     # loop over the batch
-    _r = [recall_at_k1d(indices_pred[i], indices_true[i], k) for i in range(len(indices_pred))]
+    _r = [
+        recall_at_k1d(indices_pred[i], indices_true[i], k)
+        for i in range(len(indices_pred))
+    ]
     return np.array(_r).mean()
 
 
-def create_index_parameters(label: str, index_types: List, preprocessings: List, metrics: List) -> List:
+def create_index_parameters(
+    label: str, index_types: List, preprocessings: List, metrics: List
+) -> List:
     _all_index_param = []
 
     for index_type in index_types:
@@ -105,7 +112,9 @@ def stop_docker_containers():
         [
             "docker",
             "stop",
-            *subprocess.run(["docker", "ps", "-aq"], capture_output=True, text=True).stdout.split(),
+            *subprocess.run(
+                ["docker", "ps", "-aq"], capture_output=True, text=True
+            ).stdout.split(),
         ]
     )
     subprocess.run(["sudo", "rm", "-rf", "volumes"])
@@ -136,8 +145,7 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
         # get data
         dataset = bs.datasetClass()
         index_vectors, query_vectors = dataset.get_indices_and_queries_split(
-            bs.n_query_vectors,
-            bs.batch_size,
+            bs.n_query_vectors, bs.batch_size, size_limit=500000
         )
 
         # build ground truth index
@@ -170,7 +178,9 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
 
             # warm up client
             for i in track(range(bs.n_warmup_batches), description=f"Warming up"):
-                results = client.search(vector=query_vectors[i], top_k=bs.query_top_k_results)
+                results = client.search(
+                    vector=query_vectors[i], top_k=bs.query_top_k_results
+                )
 
             # define lists for results
             recalls = []
@@ -187,7 +197,9 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
 
                 # get search results
                 timerSearch.begin()
-                results = client.search(vector=query_vectors[i], top_k=bs.query_top_k_results)
+                results = client.search(
+                    vector=query_vectors[i], top_k=bs.query_top_k_results
+                )
                 timerSearch.end()
 
                 indices_pred = results.indices
@@ -210,7 +222,9 @@ def run_benchmark(bs: BenchmarkSpecificationSingle) -> BenchmarkingResults:
             dockerMemoryLogger.stop_logging()
 
             # get memory logs
-            memoryLogsBaseline, memoryLogsIngesting, memoryLogsBenchmark = dockerMemoryLogger.get_statistics()
+            memoryLogsBaseline, memoryLogsIngesting, memoryLogsBenchmark = (
+                dockerMemoryLogger.get_statistics()
+            )
 
             # get mean of recalls
             recall = float(np.mean(recalls))
