@@ -129,7 +129,7 @@ benchmarkSpecificationsBatch = [
         ],
         indexTypes=[
             IVF(n_partition=512, n_probe=10),
-            HNSW(M=8, ef_construction=16, ef_search=32),
+            HNSW(M=8, ef_construction=8, ef_search=16),
         ],
         preprocessings=[
             None,
