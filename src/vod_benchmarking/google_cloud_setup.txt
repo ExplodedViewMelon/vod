@@ -16,6 +16,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 poetry install
 
 # ^remember to follow instructions on how to add to path
+# you'll have to restart the shell for it to take effect.
 
 poetry add scikit-learn
 poetry add pymilvus
@@ -34,6 +35,8 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io
 
 # last, make sure that you have permissions to docker
 sudo usermod -aG docker $USER
+
+# ^you'll have to restart the shell again for it to take effect
 
 # build faiss server image
 docker build -t faiss_server -f Dockerfile .
