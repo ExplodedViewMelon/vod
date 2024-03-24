@@ -133,12 +133,12 @@ benchmarkSpecificationsBatch = [
             DatasetGlove,
         ],
         indexTypes=[
-            HNSW(M=8, ef_construction=16, ef_search=32),
-            HNSW(M=16, ef_construction=16, ef_search=32),
             HNSW(M=32, ef_construction=16, ef_search=32),
-            IVF(n_partition=512, n_probe=10),
-            IVF(n_partition=1024, n_probe=10),
             IVF(n_partition=2048, n_probe=10),
+            HNSW(M=16, ef_construction=16, ef_search=32),
+            IVF(n_partition=1024, n_probe=10),
+            HNSW(M=8, ef_construction=16, ef_search=32),
+            IVF(n_partition=512, n_probe=10),
         ],
         preprocessings=[
             None,
