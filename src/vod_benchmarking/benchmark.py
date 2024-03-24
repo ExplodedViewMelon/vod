@@ -15,7 +15,12 @@ from vod_benchmarking.models import (
     DistanceMetric,
 )
 from vod_benchmarking.functions_benchmark import run_benchmark
-from vod_benchmarking.benchmarking_datasets import DatasetGlove, DatasetLastFM, DatasetSift1M, DatasetGIST
+from vod_benchmarking.benchmarking_datasets import (
+    DatasetGlove,
+    DatasetLastFM,
+    DatasetSift1M,
+    DatasetGIST,
+)
 from vod_search import milvus_search, faiss_search, qdrant_search
 from typing import List, Type
 import traceback
@@ -116,7 +121,7 @@ benchmarkSpecificationsBatch = [
     #     n_test_batches=10,
     # ),
     BenchmarkSpecificationsBatch(
-        label="DatasetTest",
+        label="DatasetTestMoreOcmplex",
         indexProviderClasses=[
             milvus_search.MilvusSearchMaster,
             qdrant_search.QdrantSearchMaster,
@@ -128,8 +133,12 @@ benchmarkSpecificationsBatch = [
             DatasetGlove,
         ],
         indexTypes=[
-            HNSW(M=8, ef_construction=8, ef_search=16),
+            HNSW(M=8, ef_construction=16, ef_search=32),
+            HNSW(M=16, ef_construction=16, ef_search=32),
+            HNSW(M=32, ef_construction=16, ef_search=32),
             IVF(n_partition=512, n_probe=10),
+            IVF(n_partition=1024, n_probe=10),
+            IVF(n_partition=2048, n_probe=10),
         ],
         preprocessings=[
             None,
@@ -380,7 +389,9 @@ for benchmarkSpecifications in benchmarkSpecificationsBatch:
     for benchmarkSpecification in benchmarkSpecifications:
         print(benchmarkSpecification.get_summary())
         benchmarkResults = run_benchmark(benchmarkSpecification).to_pandas()
-        benchmarkingResultsAll = pd.concat([benchmarkingResultsAll, benchmarkResults], ignore_index=True)
+        benchmarkingResultsAll = pd.concat(
+            [benchmarkingResultsAll, benchmarkResults], ignore_index=True
+        )
 
     benchmarkingResultsAll.to_csv(output_file)
     print(benchmarkingResultsAll)
