@@ -157,9 +157,10 @@ class BenchmarkSpecificationSingle:
                 if self.indexParameters.preprocessing.m < 8:
                     warnings.add("Faiss does not support product quantization with m<8")
 
-        if isinstance(self.indexParameters.preprocessing, ProductQuantization):
-            if self.datasetClass.dimensions % self.indexParameters.preprocessing.m != 0:
-                warnings.add("Number of subquantizers in PQ should divide evenly with data dimensions")
+        # TODO
+        # if isinstance(self.indexParameters.preprocessing, ProductQuantization):
+        #     if self.datasetClass.dimensions % self.indexParameters.preprocessing.m != 0:
+        #         warnings.add("Number of subquantizers in PQ should divide evenly with data dimensions")
 
         return warnings
 

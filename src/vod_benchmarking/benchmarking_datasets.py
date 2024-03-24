@@ -65,12 +65,6 @@ class DatasetHDF5Simple(abc.ABC):
     def name(self) -> str:
         NotImplementedError()
 
-    @property
-    @classmethod
-    @abc.abstractmethod
-    def dimensions(cls) -> int:
-        NotImplementedError()
-
     @classmethod
     @abc.abstractmethod
     def name_class(cls) -> str:
@@ -83,6 +77,8 @@ class DatasetHDF5Simple(abc.ABC):
 class DatasetGlove(DatasetHDF5Simple):
     """Dataset of size (~1_000_000, 25) at ~121MB"""
 
+    dimensions = 25  # type: ignore
+
     @property
     def name(self):
         return "glove-25-angular"
@@ -90,16 +86,13 @@ class DatasetGlove(DatasetHDF5Simple):
     @classmethod
     def name_class(cls) -> str:
         return "glove-25-angular"
-
-    @property
-    @classmethod
-    def dimensions(cls) -> int:
-        return 25
 
 
 class DatasetLastFM(DatasetHDF5Simple):
     """Dataset of size (~350_000, 65) at ~135MB"""
 
+    dimensions = 65  # type: ignore
+
     @property
     def name(self):
         return "lastfm-64-dot"
@@ -107,16 +100,13 @@ class DatasetLastFM(DatasetHDF5Simple):
     @classmethod
     def name_class(cls) -> str:
         return "lastfm-64-dot"
-
-    @property
-    @classmethod
-    def dimensions(cls) -> int:
-        return 65
 
 
 class DatasetSift1M(DatasetHDF5Simple):
     """Dataset of size (~1_000_000, 128) at ~501MB"""
 
+    dimensions = 128  # type: ignore
+
     @property
     def name(self):
         return "sift-128-euclidean"
@@ -124,11 +114,6 @@ class DatasetSift1M(DatasetHDF5Simple):
     @classmethod
     def name_class(cls) -> str:
         return "sift-128-euclidean"
-
-    @property
-    @classmethod
-    def dimensions(cls) -> int:
-        return 128
 
 
 # if __name__ == "__main__":
@@ -140,6 +125,8 @@ class DatasetSift1M(DatasetHDF5Simple):
 class DatasetGIST(DatasetHDF5Simple):
     """Dataset of size (~1_000_000, `960`) at ~3.5GB"""
 
+    dimensions = 960  # type: ignore
+
     @property
     def name(self):
         return "gist-960-euclidean"
@@ -147,11 +134,6 @@ class DatasetGIST(DatasetHDF5Simple):
     @classmethod
     def name_class(cls) -> str:
         return "gist-960-euclidean"
-
-    @property
-    @classmethod
-    def dimensions(cls) -> int:
-        return 960
 
 
 # if __name__ == "__main__":
